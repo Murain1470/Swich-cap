@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>SwitchCapture</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#e8192c;--font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--mono:'SF Mono','Fira Code',monospace;}
+html,body{width:100%;height:100%;background:#000;color:#f0f0f0;font-family:var(--font);overflow:hidden;user-select:none;-webkit-user-select:none}
+#app{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+/* VIDEO / CANVAS WRAPPER */
+#vw{position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+@media(min-aspect-ratio:16/9){#vw{height:100vh;width:calc(100vh * 16/9)}}
+@media(max-aspect-ratio:16/9){#vw{width:100vw;height:calc(100vw * 9/16)}}
+#glCanvas{width:100%;height:100%;display:block;background:#000}
+#preview{display:none}/* hidden – only used as WebGL texture source */
+
+/* PLACEHOLDER */
+#ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0d0d0d;z-index:2;transition:opacity .3s}
+#ph.hidden{opacity:0;pointer-events:none}
+.logo{font-size:22px;font-weight:700;display:flex;align-items:center;gap:10px}
+.dot{width:34px;height:34px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.dot svg{width:16px;height:16px;fill:white}
+#ph p{font-size:12px;color:rgba(255,255,255,.4);text-align:center;padding:0 24px;line-height:1.6}
+.ph-btns{display:flex;gap:10px;margin-top:6px}
+#start-btn,#refresh-btn{padding:11px 28px;border:none;border-radius:100px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer}
+#start-btn{background:var(--red);color:#fff}
+#refresh-btn{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15)}
+#start-btn:active,#refresh-btn:active{opacity:.7}
+#dev-list{width:100%;max-width:320px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden}
+.dev-item{padding:11px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background .15s}
+.dev-item:not(:last-child){border-bottom:1px solid rgba(255,255,255,.06)}
+.dev-item:hover{background:rgba(255,255,255,.08)}
+.dev-item.selected{background:rgba(232,25,44,.15);color:var(--red)}
+.dev-item .tag{font-size:10px;padding:2px 8px;border-radius:100px;background:rgba(232,25,44,.3);color:var(--red)}
+#log{font-size:11px;color:rgba(255,255,255,.3);font-family:var(--mono);text-align:center;padding:0 20px}
+
+/* FLASH */
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+#flash.go{animation:fl .3s ease-out forwards}
+@keyframes fl{0%{opacity:.9}100%{opacity:0}}
+
+/* CONTROLS */
+#ctrl{position:absolute;bottom:0;left:0;right:0;padding:10px 14px 14px;background:linear-gradient(to top,rgba(0,0,0,.85),transparent);display:flex;align-items:center;justify-content:space-between;gap:8px;z-index:10;transition:opacity .3s,transform .3s}
+#ctrl.hide{opacity:0;transform:translateY(6px);pointer-events:none}
+.cg{display:flex;align-items:center;gap:8px}
+.btn{display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s,opacity .12s}
+.btn:active{transform:scale(.88);opacity:.7}
+.ib{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-family:var(--font)}
+.ib svg{width:18px;height:18px}
+#rec-btn{width:58px;height:58px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(232,25,44,.3);position:relative}
+#rec-btn::before{content:'';position:absolute;inset:8px;background:#fff;border-radius:50%;transition:border-radius .2s,inset .2s}
+#rec-btn.rec::before{border-radius:4px;inset:15px}
+#rec-btn.rec{animation:rp 1.5s ease-in-out infinite}
+@keyframes rp{0%,100%{box-shadow:0 0 0 3px rgba(232,25,44,.3)}50%{box-shadow:0 0 0 8px rgba(232,25,44,.1)}}
+
+/* TIMER */
+#timer{font-family:var(--mono);font-size:12px;color:#fff;background:rgba(232,25,44,.85);padding:3px 10px;border-radius:100px;letter-spacing:1px;display:none;align-items:center;gap:5px}
+#timer.on{display:flex}
+#timer::before{content:'';width:6px;height:6px;background:#fff;border-radius:50%;animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* STATUS */
+#status{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none}
+.badge{font-size:10px;font-family:var(--mono);padding:3px 9px;border-radius:100px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)}
+.badge.live{background:rgba(232,25,44,.2);border-color:rgba(232,25,44,.4);color:var(--red)}
+
+/* SELECT in controls */
+.sw{position:relative;display:flex;align-items:center}
+.sw svg{position:absolute;right:9px;width:11px;height:11px;pointer-events:none;color:rgba(255,255,255,.4)}
+#dev{appearance:none;background:rgba(255,255,255,.1);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.1);border-radius:100px;color:#fff;font-family:var(--font);font-size:11px;padding:7px 26px 7px 12px;cursor:pointer;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;outline:none}
+#dev option{background:#1a1a1a;color:#fff}
+
+/* TOAST */
+#toast{position:absolute;top:50px;left:50%;transform:translateX(-50%) translateY(-6px);background:rgba(20,20,20,.95);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 16px;font-size:12px;color:#f0f0f0;pointer-events:none;opacity:0;transition:opacity .25s,transform .25s;z-index:30;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="vw">
+    <!-- Placeholder -->
+    <div id="ph">
+      <div class="logo">
+        <div class="dot"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>
+        SwitchCapture
+      </div>
+      <p id="log">插好擷取卡與 Switch 後，點「重新整理」偵測設備</p>
+      <div id="dev-list"></div>
+      <div class="ph-btns">
+        <button id="refresh-btn" onclick="refreshDevices()">🔄 重新整理設備</button>
+        <button id="start-btn" onclick="startCapture()">▶ 開始擷取</button>
+      </div>
+    </div>
+
+    <!-- Hidden video (WebGL texture source) -->
+    <video id="preview" autoplay playsinline muted></video>
+    <!-- WebGL canvas for display -->
+    <canvas id="glCanvas"></canvas>
+    <div id="flash"></div>
+
+    <!-- Status -->
+    <div id="status">
+      <div class="badge" id="res">--</div>
+      <div class="badge live" id="live" style="display:none">● LIVE</div>
+      <div id="timer">00:00:00</div>
+    </div>
+
+    <!-- Controls -->
+    <div id="ctrl" class="hide">
+      <div class="cg">
+        <div class="sw">
+          <select id="dev" onchange="switchDev(this.value)"><option>--</option></select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <button class="btn ib" onclick="refreshDevices()" title="重新整理設備" style="font-size:16px">🔄</button>
+      </div>
+      <div class="cg">
+        <button class="btn ib" onclick="takePhoto()" title="截圖">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="13" r="4"/><path d="M5 7h2l2-2h6l2 2h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2z"/>
+          </svg>
+        </button>
+        <button class="btn" id="rec-btn" onclick="toggleRec()"></button>
+        <button class="btn ib" id="mute-btn" onclick="toggleAudio()" title="音訊">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path id="vlines" d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
+          </svg>
+        </button>
+      </div>
+      <div class="cg">
+        <button class="btn ib" onclick="toggleFS()" title="全螢幕">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+  </div>
+</div>
+<canvas id="snapCanvas" style="display:none"></canvas>
+
+<script>
+var stream=null,mr=null,chunks=[],recording=false,audioOn=false,audioEl=null;
+var timerSec=0,timerIv=null,idleIv=null,curDev=null;
+var glCtx=null,glTex=null,glProg=null,rafId=null;
+var allDevices=[];
+
+var video=document.getElementById('preview');
+var glCanvas=document.getElementById('glCanvas');
+var snapCanvas=document.getElementById('snapCanvas');
+var flash=document.getElementById('flash');
+var ctrl=document.getElementById('ctrl');
+var timer=document.getElementById('timer');
+var resBadge=document.getElementById('res');
+var live=document.getElementById('live');
+var toast=document.getElementById('toast');
+var ph=document.getElementById('ph');
+var logEl=document.getElementById('log');
+var devList=document.getElementById('dev-list');
+
+/* ── WEBGL SETUP ── */
+function initWebGL(){
+  glCtx=glCanvas.getContext('webgl')||glCanvas.getContext('experimental-webgl');
+  if(!glCtx){console.warn('WebGL not available, falling back');return false;}
+
+  var vsSrc='attribute vec2 a_pos;attribute vec2 a_uv;varying vec2 v_uv;void main(){gl_Position=vec4(a_pos,0,1);v_uv=a_uv;}';
+  var fsSrc='precision mediump float;uniform sampler2D u_tex;varying vec2 v_uv;void main(){gl_FragColor=texture2D(u_tex,v_uv);}';
+
+  function mkShader(type,src){var s=glCtx.createShader(type);glCtx.shaderSource(s,src);glCtx.compileShader(s);return s;}
+  glProg=glCtx.createProgram();
+  glCtx.attachShader(glProg,mkShader(glCtx.VERTEX_SHADER,vsSrc));
+  glCtx.attachShader(glProg,mkShader(glCtx.FRAGMENT_SHADER,fsSrc));
+  glCtx.linkProgram(glProg);
+  glCtx.useProgram(glProg);
+
+  var verts=new Float32Array([-1,-1,0,1, 1,-1,1,1, -1,1,0,0, 1,1,1,0]);
+  var buf=glCtx.createBuffer();
+  glCtx.bindBuffer(glCtx.ARRAY_BUFFER,buf);
+  glCtx.bufferData(glCtx.ARRAY_BUFFER,verts,glCtx.STATIC_DRAW);
+
+  var aPos=glCtx.getAttribLocation(glProg,'a_pos');
+  var aUV=glCtx.getAttribLocation(glProg,'a_uv');
+  glCtx.enableVertexAttribArray(aPos);
+  glCtx.vertexAttribPointer(aPos,2,glCtx.FLOAT,false,16,0);
+  glCtx.enableVertexAttribArray(aUV);
+  glCtx.vertexAttribPointer(aUV,2,glCtx.FLOAT,false,16,8);
+
+  glTex=glCtx.createTexture();
+  glCtx.bindTexture(glCtx.TEXTURE_2D,glTex);
+  glCtx.texParameteri(glCtx.TEXTURE_2D,glCtx.TEXTURE_WRAP_S,glCtx.CLAMP_TO_EDGE);
+  glCtx.texParameteri(glCtx.TEXTURE_2D,glCtx.TEXTURE_WRAP_T,glCtx.CLAMP_TO_EDGE);
+  glCtx.texParameteri(glCtx.TEXTURE_2D,glCtx.TEXTURE_MIN_FILTER,glCtx.LINEAR);
+  glCtx.texParameteri(glCtx.TEXTURE_2D,glCtx.TEXTURE_MAG_FILTER,glCtx.LINEAR);
+  return true;
+}
+
+function renderLoop(){
+  rafId=requestAnimationFrame(renderLoop);
+  if(!glCtx||!video||video.readyState<2)return;
+  var w=video.videoWidth,h=video.videoHeight;
+  if(!w||!h)return;
+  if(glCanvas.width!==w||glCanvas.height!==h){glCanvas.width=w;glCanvas.height=h;}
+  glCtx.viewport(0,0,w,h);
+  glCtx.bindTexture(glCtx.TEXTURE_2D,glTex);
+  glCtx.texImage2D(glCtx.TEXTURE_2D,0,glCtx.RGBA,glCtx.RGBA,glCtx.UNSIGNED_BYTE,video);
+  glCtx.drawArrays(glCtx.TRIANGLE_STRIP,0,4);
+}
+
+/* ── DEVICE ENUMERATION ── */
+function isCapture(label){
+  var l=(label||'').toLowerCase();
+  return l.includes('usb video')||l.includes('uvc')||l.includes('capture')||
+         l.includes('hdmi')||l.includes('game')||l.includes('switch');
+}
+
+function isBuiltin(label){
+  var l=(label||'').toLowerCase();
+  return l.includes('facing front')||l.includes('facing back')||
+         l.includes('前置')||l.includes('後置');
+}
+
+async function refreshDevices(){
+  setLog('正在偵測設備…');
+  // Must have permission first to get labels
+  if(!stream){
+    try{
+      var tmp=await navigator.mediaDevices.getUserMedia({video:true,audio:false});
+      tmp.getTracks().forEach(function(t){t.stop();});
+    }catch(e){}
+  }
+  var devs=await navigator.mediaDevices.enumerateDevices();
+  allDevices=devs.filter(function(d){return d.kind==='videoinput';});
+  renderDevList();
+  // Update control bar select too
+  updateSelect();
+  setLog('找到 '+allDevices.length+' 個視訊設備');
+}
+
+function renderDevList(){
+  devList.innerHTML='';
+  allDevices.forEach(function(d,i){
+    var div=document.createElement('div');
+    div.className='dev-item'+(curDev===d.deviceId?' selected':'');
+    var name=document.createElement('span');
+    name.textContent=d.label||('Camera '+(i+1));
+    div.appendChild(name);
+    if(isCapture(d.label)){
+      var tag=document.createElement('span');
+      tag.className='tag';tag.textContent='擷取卡';
+      div.appendChild(tag);
+    }
+    div.onclick=function(){curDev=d.deviceId;renderDevList();}
+    devList.appendChild(div);
+  });
+}
+
+function updateSelect(){
+  var sel=document.getElementById('dev');
+  sel.innerHTML='';
+  allDevices.forEach(function(d,i){
+    var o=document.createElement('option');
+    o.value=d.deviceId;
+    o.textContent=d.label||('Camera '+(i+1));
+    if(d.deviceId===curDev)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+function setLog(msg){logEl.textContent=msg;}
+
+/* ── START CAPTURE ── */
+async function startCapture(){
+  if(!allDevices.length)await refreshDevices();
+
+  // Pick best device: prefer capture card, else use curDev, else first non-builtin
+  var targetId=curDev;
+  if(!targetId){
+    var cap=allDevices.find(function(d){return isCapture(d.label);});
+    var nonBuiltin=allDevices.find(function(d){return !isBuiltin(d.label);});
+    targetId=(cap||nonBuiltin||allDevices[0]||{}).deviceId;
+  }
+
+  setLog('正在連接設備…');
+  try{
+    if(stream)stream.getTracks().forEach(function(t){t.stop();});
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{deviceId:targetId?{exact:targetId}:undefined},
+      audio:false
+    });
+    curDev=targetId;
+    video.srcObject=stream;
+    video.muted=true;
+    await video.play();
+
+    if(!glCtx)initWebGL();
+    if(glCtx){
+      if(rafId)cancelAnimationFrame(rafId);
+      renderLoop();
+    } else {
+      // Fallback: show video directly
+      glCanvas.style.display='none';
+      video.style.display='block';
+      video.style.width='100%';video.style.height='100%';video.style.objectFit='contain';
+    }
+
+    video.onloadedmetadata=function(){
+      var s=stream.getVideoTracks()[0].getSettings();
+      resBadge.textContent=(s.width||'?')+'x'+(s.height||'?')+' · '+Math.round(s.frameRate||0)+'fps';
+    };
+
+    ph.classList.add('hidden');
+    ctrl.classList.remove('hide');
+    live.style.display='flex';
+    updateSelect();
+    setupIdle();
+    showToast('✅ 已連接：'+(stream.getVideoTracks()[0].label||'Camera'));
+  }catch(e){
+    setLog('錯誤：'+e.message);
+    alert('無法開啟設備：'+e.message);
+  }
+}
+
+/* ── SWITCH DEVICE ── */
+async function switchDev(id){
+  if(!id||id===curDev)return;
+  curDev=id;
+  try{
+    if(stream)stream.getTracks().forEach(function(t){t.stop();});
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{deviceId:{exact:id}},audio:false
+    });
+    video.srcObject=stream;
+    video.muted=true;
+    video.play();
+    showToast('切換設備成功');
+  }catch(e){showToast('切換失敗：'+e.message);}
+}
+
+/* ── SCREENSHOT ── */
+function takePhoto(){
+  if(!stream)return;
+  var w=video.videoWidth,h=video.videoHeight;
+  snapCanvas.width=w;snapCanvas.height=h;
+  snapCanvas.getContext('2d').drawImage(video,0,0,w,h);
+  flash.classList.remove('go');void flash.offsetWidth;flash.classList.add('go');
+  snapCanvas.toBlob(function(b){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download='switch_'+ts()+'.png';a.click();
+    URL.revokeObjectURL(a.href);
+  },'image/png');
+  showToast('📸 截圖已儲存');
+}
+
+/* ── RECORDING ── */
+function toggleRec(){recording?stopRec():startRec();}
+
+function getMime(){
+  var types=['video/webm;codecs=h264','video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp9','video/webm'];
+  for(var i=0;i<types.length;i++){if(MediaRecorder.isTypeSupported(types[i]))return types[i];}
+  return 'video/webm';
+}
+
+function startRec(){
+  if(!stream)return;
+  chunks=[];
+  var mime=getMime();
+  try{
+    mr=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:8000000});
+  }catch(e){
+    mr=new MediaRecorder(stream);
+  }
+  mr.ondataavailable=function(e){if(e.data&&e.data.size>0)chunks.push(e.data);};
+  mr.onstop=function(){
+    var ext=getMime().indexOf('mp4')>=0?'mp4':'webm';
+    var b=new Blob(chunks,{type:getMime()});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download='switch_'+ts()+'.'+ext;a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('🎬 影片已儲存');
+  };
+  mr.start(100);recording=true;
+  document.getElementById('rec-btn').classList.add('rec');
+  timer.classList.add('on');timerSec=0;updateTimer();
+  timerIv=setInterval(function(){timerSec++;updateTimer();},1000);
+}
+
+function stopRec(){
+  if(mr)mr.stop();recording=false;
+  document.getElementById('rec-btn').classList.remove('rec');
+  clearInterval(timerIv);timer.classList.remove('on');
+}
+
+function updateTimer(){
+  var h=String(Math.floor(timerSec/3600)).padStart(2,'0');
+  var m=String(Math.floor((timerSec%3600)/60)).padStart(2,'0');
+  var s=String(timerSec%60).padStart(2,'0');
+  timer.textContent=h+':'+m+':'+s;
+}
+
+/* ── AUDIO ── */
+function toggleAudio(){
+  audioOn=!audioOn;
+  if(audioOn){
+    if(!audioEl&&stream){
+      audioEl=new Audio();
+      audioEl.srcObject=new MediaStream(stream.getAudioTracks());
+      audioEl.muted=false;audioEl.play().catch(function(){});
+    }
+    if(audioEl)audioEl.muted=false;
+    document.getElementById('mute-btn').style.color='#fff';
+    showToast('🔊 音訊已開啟');
+  }else{
+    if(audioEl)audioEl.muted=true;
+    document.getElementById('mute-btn').style.color='#e8192c';
+    showToast('🔇 音訊已靜音');
+  }
+}
+
+/* ── FULLSCREEN ── */
+function toggleFS(){
+  var el=document.getElementById('vw');
+  if(!document.fullscreenElement){
+    var fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen;
+    if(fn)fn.call(el);
+  }else{
+    var ef=document.exitFullscreen||document.webkitExitFullscreen||document.mozCancelFullScreen;
+    if(ef)ef.call(document);
+  }
+}
+
+/* ── IDLE HIDE ── */
+function setupIdle(){
+  var vw=document.getElementById('vw');
+  function show(){ctrl.classList.remove('hide');clearTimeout(idleIv);idleIv=setTimeout(function(){ctrl.classList.add('hide');},3500);}
+  vw.addEventListener('mousemove',show);
+  vw.addEventListener('touchstart',show,{passive:true});
+  show();
+}
+
+/* ── TOAST ── */
+function showToast(msg){
+  toast.textContent=msg;toast.classList.add('show');
+  setTimeout(function(){toast.classList.remove('show');},2200);
+}
+
+function ts(){return new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);}
+
+/* ── INIT ── */
+refreshDevices();
+
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener){
+  navigator.mediaDevices.addEventListener('devicechange',function(){refreshDevices();});
+}
+</script>
+</body>
+</html>
