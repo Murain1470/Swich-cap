@@ -149,6 +149,7 @@ select.sel option{background:#1c1c1e;color:#fff}
 
    <div class="ph-btns">
     <button class="pBtn sec" onclick="refreshDevices()">🔄 重新整理</button>
+    <button class="pBtn sec" onclick="showDiag()">🔍 診斷</button>
     <button class="pBtn pri" onclick="startCapture()">▶ 開始擷取</button>
    </div>
    <div id="ph-log">插好擷取卡後點「重新整理」偵測設備</div>
@@ -432,32 +433,28 @@ async function startCapture() {
       curAudId = (capA||usbA||nonBI||first).deviceId;
     }
 
-    var vidConstraint = { deviceId: curVidId ? {exact:curVidId} : undefined, width:{ideal:1920}, height:{ideal:1080} };
-    var audConstraint = curAudId
-      ? { deviceId:{exact:curAudId}, echoCancellation:false, noiseSuppression:false, autoGainControl:false }
-      : true;
+    // Video only — no resolution constraints (let capture card use native resolution)
+    var vidConstraint = { deviceId: curVidId ? {exact:curVidId} : undefined };
+    vidStream = await navigator.mediaDevices.getUserMedia({ video:vidConstraint, audio:false });
 
-    // Try video + audio in one call (most reliable)
-    try {
-      vidStream = await navigator.mediaDevices.getUserMedia({ video:vidConstraint, audio:audConstraint });
-    } catch(e) {
-      // Audio device might be busy or not support exact constraint — try ideal
+    // Audio — separate stream to avoid affecting video quality
+    audStream = null;
+    if (curAudId) {
       try {
-        var audFallback = curAudId
-          ? { deviceId:{ideal:curAudId}, echoCancellation:false, noiseSuppression:false, autoGainControl:false }
-          : true;
-        vidStream = await navigator.mediaDevices.getUserMedia({ video:vidConstraint, audio:audFallback });
-      } catch(e2) {
-        // Last resort: video only
-        vidStream = await navigator.mediaDevices.getUserMedia({ video:vidConstraint, audio:false });
-        showToast('⚠️ 音訊無法開啟，僅視訊');
+        audStream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId:{ideal:curAudId}, echoCancellation:false, noiseSuppression:false, autoGainControl:false },
+          video: false
+        });
+      } catch(eAud) {
+        // Try with just true (default device) as last fallback
+        try {
+          audStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
+          showToast('⚠️ 指定音訊裝置失敗，使用預設麥克風');
+        } catch(eAud2) {
+          showToast('⚠️ 音訊無法開啟：' + eAud.message);
+        }
       }
     }
-
-    // audStream = the audio portion of vidStream (for monitor / recording)
-    audStream = vidStream.getAudioTracks().length > 0
-      ? new MediaStream(vidStream.getAudioTracks())
-      : null;
 
     srcVideo.srcObject = vidStream;
     srcVideo.muted = true;
@@ -526,7 +523,7 @@ async function switchAudio(id) {
 // ── AUDIO MONITOR ─────────────────────────────────────────────────────────
 function startAudPlayback() {
   if (audEl){ audEl.srcObject = null; audEl = null; }
-  var tracks = vidStream ? vidStream.getAudioTracks() : [];
+  var tracks = audStream ? audStream.getAudioTracks() : [];
   if (!tracks.length) { showToast('⚠️ 無音訊軌道'); return; }
   audEl = new Audio();
   audEl.srcObject = new MediaStream(tracks);
@@ -593,12 +590,14 @@ function toggleRec(){ isRec ? stopRec() : startRec(); }
 function startRec() {
   if (!vidStream) return;
   recChunks = [];
-  // vidStream already contains both video + audio tracks from the single getUserMedia call
+  var tracks = vidStream.getVideoTracks().slice();
+  if (audStream) tracks = tracks.concat(audStream.getAudioTracks());
+  var combined = new MediaStream(tracks);
   var mime = getMime();
   try {
-    mediaRec = new MediaRecorder(vidStream, { mimeType: mime, videoBitsPerSecond: bitrate });
+    mediaRec = new MediaRecorder(combined, { mimeType: mime, videoBitsPerSecond: bitrate });
   } catch(e) {
-    mediaRec = new MediaRecorder(vidStream);
+    mediaRec = new MediaRecorder(combined);
   }
   mediaRec.ondataavailable = function(e){ if (e.data && e.data.size>0) recChunks.push(e.data); };
   mediaRec.onstop = function(){
@@ -715,6 +714,25 @@ function showToast(msg) {
   toastTmr = setTimeout(function(){ toast.classList.remove('show'); }, 2500);
 }
 function ts(){ return new Date().toISOString().replace(/[:.]/g,'-').slice(0,19); }
+
+// ── DIAGNOSTICS ───────────────────────────────────────────────────────────
+function showDiag() {
+  var lines = ['=== 視訊設備 (' + allVid.length + ') ==='];
+  allVid.forEach(function(d,i){
+    lines.push((i+1) + '. ' + (d.label||'(無標籤)') + '\n   ID: ' + d.deviceId.slice(0,20) + '…');
+  });
+  lines.push('\n=== 音訊設備 (' + allAud.length + ') ===');
+  allAud.forEach(function(d,i){
+    lines.push((i+1) + '. ' + (d.label||'(無標籤)') + '\n   ID: ' + d.deviceId.slice(0,20) + '…');
+  });
+  lines.push('\n=== 目前選擇 ===');
+  var selVid = allVid.find(function(d){ return d.deviceId===curVidId; });
+  var selAud = allAud.find(function(d){ return d.deviceId===curAudId; });
+  lines.push('視訊: ' + (selVid ? selVid.label : '未選擇'));
+  lines.push('音訊: ' + (selAud ? selAud.label : '未選擇'));
+  lines.push('音訊串流: ' + (audStream ? '✅ 已開啟 (' + audStream.getAudioTracks().length + ' 軌)' : '❌ 無'));
+  alert(lines.join('\n'));
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 refreshDevices();
