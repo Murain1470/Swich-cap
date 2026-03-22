@@ -272,7 +272,8 @@ var sp = $('sp'), flash = $('flash'), toast = $('toast'), hint = $('hint');
 
 // ── WEBGL ─────────────────────────────────────────────────────────────────
 function initGL() {
-  gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
+  gl = glCanvas.getContext('webgl', {preserveDrawingBuffer: true}) ||
+       glCanvas.getContext('experimental-webgl', {preserveDrawingBuffer: true});
   if (!gl) return false;
 
   var vs = 'attribute vec2 p;attribute vec2 u;varying vec2 v;void main(){gl_Position=vec4(p,0,1);v=u;}';
@@ -611,14 +612,20 @@ function updateAudUI() {
 function takePhoto() {
   if (!vidStream) return;
   var w = srcVideo.videoWidth, h = srcVideo.videoHeight;
+  if (!w || !h) return;
   snapCanvas.width = w; snapCanvas.height = h;
-  snapCanvas.getContext('2d').drawImage(glCanvas.width ? glCanvas : srcVideo, 0, 0, w, h);
+  // Draw from srcVideo directly (always has current frame, no WebGL buffer issue)
+  snapCanvas.getContext('2d').drawImage(srcVideo, 0, 0, w, h);
   flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
   snapCanvas.toBlob(function(b){
+    if (!b) { showToast('❌ 截圖失敗'); return; }
     var a = document.createElement('a');
     a.href = URL.createObjectURL(b);
     a.download = 'SwitchLens_' + ts() + '.png';
-    a.click(); URL.revokeObjectURL(a.href);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
   }, 'image/png');
   showToast('📸 截圖已儲存');
 }
