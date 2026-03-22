@@ -306,12 +306,17 @@ function initGL() {
 function renderLoop() {
   rafId = requestAnimationFrame(renderLoop);
   if (!gl || srcVideo.readyState < 2) return;
-  var w = srcVideo.videoWidth, h = srcVideo.videoHeight;
-  if (!w || !h) return;
-  if (glCanvas.width !== w || glCanvas.height !== h) { glCanvas.width = w; glCanvas.height = h; }
-  gl.viewport(0,0,w,h);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,srcVideo);
-  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  if (!srcVideo.videoWidth || !srcVideo.videoHeight) return;
+  // Match canvas to display pixels (devicePixelRatio) for sharpest output
+  var dpr = window.devicePixelRatio || 1;
+  var cw = Math.round(glCanvas.clientWidth * dpr);
+  var ch = Math.round(glCanvas.clientHeight * dpr);
+  if (glCanvas.width !== cw || glCanvas.height !== ch) {
+    glCanvas.width = cw; glCanvas.height = ch;
+  }
+  gl.viewport(0, 0, cw, ch);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, srcVideo);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
 // ── DEVICE HELPERS ────────────────────────────────────────────────────────
@@ -471,8 +476,11 @@ async function startCapture() {
       curAudId = (capA||usbA||nonBI||first).deviceId;
     }
 
-    // Video only — no resolution constraints (let capture card use native resolution)
-    var vidConstraint = { deviceId: curVidId ? {exact:curVidId} : undefined };
+    // Video only — hint ideal resolution so browser picks highest available
+    var vidConstraint = {
+      deviceId: curVidId ? {exact:curVidId} : undefined,
+      width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 60}
+    };
     vidStream = await navigator.mediaDevices.getUserMedia({ video:vidConstraint, audio:false });
 
     // Audio — separate stream to avoid affecting video quality
