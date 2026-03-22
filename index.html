@@ -143,8 +143,13 @@ select.sel option{background:#1c1c1e;color:#fff}
    </div>
 
    <div class="card">
-    <div class="card-hd">選擇視訊設備</div>
+    <div class="card-hd">視訊設備</div>
     <div id="dev-list"></div>
+   </div>
+
+   <div class="card">
+    <div class="card-hd">音訊設備</div>
+    <div id="aud-list"></div>
    </div>
 
    <div class="ph-btns">
@@ -262,7 +267,7 @@ var srcVideo = $('src'), glCanvas = $('glCanvas'), snapCanvas = $('snap');
 var ph = $('ph'), ctrl = $('ctrl'), topbar = $('topbar');
 var timerWrap = $('timer-wrap'), timerText = $('timer-text');
 var resBadge = $('res-badge'), liveBadge = $('live-badge');
-var devList = $('dev-list'), vidSel = $('vid-sel'), audSel = $('aud-sel');
+var devList = $('dev-list'), audList = $('aud-list'), vidSel = $('vid-sel'), audSel = $('aud-sel');
 var sp = $('sp'), flash = $('flash'), toast = $('toast'), hint = $('hint');
 
 // ── WEBGL ─────────────────────────────────────────────────────────────────
@@ -362,7 +367,7 @@ async function refreshDevices() {
     curAudId = (capA || usbA || nonBI || first).deviceId;
   }
 
-  renderDevList(); buildSelects();
+  renderDevList(); renderAudList(); buildSelects();
   setLog('找到 ' + allVid.length + ' 個視訊 · ' + allAud.length + ' 個音訊設備');
 }
 
@@ -411,6 +416,39 @@ function buildSelects() {
     o.value = d.deviceId; o.textContent = shorten(d.label,i,'a');
     if (d.deviceId===curAudId) o.selected = true;
     audSel.appendChild(o);
+  });
+}
+
+function renderAudList() {
+  audList.innerHTML = '';
+  if (!allAud.length) {
+    audList.innerHTML = '<div class="dev-empty">未偵測到音訊設備<br>請確認瀏覽器已授予麥克風權限</div>';
+    return;
+  }
+  // Add "no audio" option
+  var none = document.createElement('div');
+  none.className = 'dev-item' + (!curAudId ? ' active' : '');
+  none.innerHTML = '<div class="dev-icon"><svg viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23" stroke-width="2"/><path d="M9 9v3a3 3 0 005.12 2.12M15 9.34V4a3 3 0 00-5.94-.6"/><path d="M17 16.95A7 7 0 015 12v-2m14 0v2a7 7 0 01-.11 1.23M12 19v4M8 23h8"/></svg></div><div class="dev-name">不使用音訊</div>';
+  none.onclick = function(){ curAudId = null; renderAudList(); };
+  audList.appendChild(none);
+
+  allAud.forEach(function(d, i) {
+    var row = document.createElement('div');
+    row.className = 'dev-item' + (d.deviceId===curAudId ? ' active' : '');
+    var icon = document.createElement('div');
+    icon.className = 'dev-icon';
+    icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>';
+    var name = document.createElement('div');
+    name.className = 'dev-name';
+    name.textContent = shorten(d.label, i, 'a');
+    row.appendChild(icon); row.appendChild(name);
+    if (isCapture(d.label) || isUsbAudio(d.label)) {
+      var tag = document.createElement('span');
+      tag.className = 'cap-tag'; tag.textContent = 'USB';
+      row.appendChild(tag);
+    }
+    row.onclick = function(){ curAudId = d.deviceId; renderAudList(); };
+    audList.appendChild(row);
   });
 }
 
