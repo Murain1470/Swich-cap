@@ -514,8 +514,15 @@ async function startCapture() {
     buildSelects();
     setupIdle();
 
-    var audLabel = audStream ? '含音訊' : '無音訊';
-    showToast('✅ 已連接 · ' + audLabel + ' · ' + (vidStream.getVideoTracks()[0].label||'設備'));
+    // Auto-start audio monitoring
+    if (audStream && audStream.getAudioTracks().length > 0) {
+      audOn = true;
+      startAudPlayback();
+      updateAudUI();
+    }
+
+    var audLabel = audStream ? '含音訊 🔊' : '⚠️ 無音訊';
+    showToast('✅ 已連接 · ' + audLabel);
   } catch(e) {
     setLog('錯誤：' + e.message);
     showToast('❌ ' + e.message);
@@ -570,7 +577,7 @@ function startAudPlayback() {
 }
 
 function toggleAudioMonitor() {
-  var hasAudio = vidStream && vidStream.getAudioTracks().length > 0;
+  var hasAudio = audStream && audStream.getAudioTracks().length > 0;
   if (!hasAudio && !audOn) {
     showToast('⚠️ 無音訊來源，請從下拉選單選擇音訊設備');
     return;
