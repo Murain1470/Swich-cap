@@ -3,143 +3,400 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0d0d0d">
+<meta name="theme-color" content="#08080a">
 <title>SwitchLens</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --red:#e8192c;
-  --bg:#0d0d0d;
-  --surface:rgba(255,255,255,.08);
-  --border:rgba(255,255,255,.10);
-  --text:#f0f0f0;
-  --sub:rgba(255,255,255,.40);
-  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --mono:'SF Mono','Fira Code','Consolas',monospace;
-  --blur:blur(14px);
-  --r:12px;
+  --acc:#00D4FF;
+  --red:#E8192C;
+  --bg:#08080a;
+  --bg2:#0e0e12;
+  --surface:rgba(255,255,255,.055);
+  --surface2:rgba(255,255,255,.03);
+  --border:rgba(255,255,255,.09);
+  --border2:rgba(0,212,255,.18);
+  --text:#eef0f4;
+  --sub:rgba(255,255,255,.38);
+  --sub2:rgba(255,255,255,.18);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --mono:'SF Mono','Fira Code','JetBrains Mono','Consolas',monospace;
+  --blur:blur(20px) saturate(180%);
+  --r:14px;
+  --r2:10px;
 }
-html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;user-select:none;-webkit-user-select:none}
+
+html,body{
+  width:100%;height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  overflow:hidden;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* subtle ambient glow */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%,rgba(0,212,255,.04) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%,rgba(120,60,220,.04) 0%,transparent 60%);
+  pointer-events:none;z-index:0;
+}
 
 /* ── SHELL ── */
-#app{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
-#vw{position:relative;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#app{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center;position:relative}
+#vw{
+  position:relative;background:#000;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
 @media(min-aspect-ratio:16/9){#vw{height:100vh;width:calc(100vh * 16/9)}}
 @media(max-aspect-ratio:16/9){#vw{width:100vw;height:calc(100vw * 9/16)}}
-#glCanvas{width:100%;height:100%;display:block}
+
+#glCanvas{
+  width:100%;height:100%;display:block;
+  transform-origin:center center;
+  transition:transform .05s linear;
+  cursor:default;
+}
+#glCanvas.panning{cursor:grabbing}
 video#src{display:none}
 
 /* ── PLACEHOLDER ── */
-#ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:var(--bg);z-index:50;transition:opacity .3s}
+#ph{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  background:var(--bg);z-index:50;transition:opacity .4s;
+}
 #ph.gone{opacity:0;pointer-events:none}
 
-.logo{display:flex;align-items:center;gap:14px}
-.logo-icon{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#00C8FF 0%,#7B44EE 50%,#E8192C 100%);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.logo-icon svg{width:26px;height:26px}
-.logo-name{font-size:26px;font-weight:700;letter-spacing:-.5px}
-.logo-sub{font-size:11px;color:var(--sub);letter-spacing:.8px;text-transform:uppercase;margin-top:2px}
+.logo{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+.logo-ring{
+  width:54px;height:54px;border-radius:18px;flex-shrink:0;
+  background:linear-gradient(135deg,#00C8FF 0%,#7B44EE 50%,#E8192C 100%);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 24px rgba(0,212,255,.25);
+}
+.logo-ring svg{width:26px;height:26px}
+.logo-name{
+  font-size:28px;font-weight:800;letter-spacing:-.8px;
+  background:linear-gradient(90deg,#fff 40%,rgba(255,255,255,.55));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.logo-tagline{
+  font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--sub);margin-top:3px;font-weight:500;
+}
 
-.card{width:100%;max-width:400px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.card-hd{padding:10px 16px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--sub);border-bottom:1px solid var(--border)}
+.ph-spec{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+}
+.spec-chip{
+  font-size:9px;font-family:var(--mono);letter-spacing:.6px;text-transform:uppercase;
+  padding:4px 10px;border-radius:100px;
+  border:1px solid var(--border);
+  color:var(--sub);background:rgba(255,255,255,.03);
+}
+.spec-chip.hi{border-color:rgba(0,212,255,.3);color:var(--acc)}
 
-.dev-item{padding:12px 16px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background .15s}
+.card{
+  width:100%;max-width:420px;
+  background:rgba(255,255,255,.028);
+  border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;
+}
+.card-hd{
+  padding:10px 16px;
+  font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--sub2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.card-hd::before{
+  content:'';width:5px;height:5px;border-radius:50%;
+  background:var(--acc);opacity:.7;flex-shrink:0;
+}
+
+.dev-item{
+  padding:13px 16px;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:12px;
+  transition:background .12s;
+}
 .dev-item:not(:last-child){border-bottom:1px solid rgba(255,255,255,.04)}
-.dev-item:hover{background:rgba(255,255,255,.05)}
-.dev-item.active{background:rgba(232,25,44,.07)}
-.dev-icon{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dev-item:hover{background:rgba(255,255,255,.04)}
+.dev-item.active{background:rgba(0,212,255,.06)}
+.dev-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:rgba(255,255,255,.06);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
 .dev-icon svg{width:15px;height:15px;fill:none;stroke:var(--sub);stroke-width:1.8}
-.dev-item.active .dev-icon{background:rgba(232,25,44,.18)}
-.dev-item.active .dev-icon svg{stroke:var(--red)}
-.dev-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cap-tag{font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:100px;background:rgba(232,25,44,.18);color:var(--red);text-transform:uppercase;flex-shrink:0}
-.dev-empty{padding:20px 16px;font-size:12px;color:var(--sub);text-align:center}
+.dev-item.active .dev-icon{background:rgba(0,212,255,.14)}
+.dev-item.active .dev-icon svg{stroke:var(--acc)}
+.dev-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.cap-tag{
+  font-size:8.5px;font-weight:700;letter-spacing:.5px;
+  padding:2px 8px;border-radius:100px;
+  background:rgba(0,212,255,.12);color:var(--acc);
+  text-transform:uppercase;flex-shrink:0;
+}
+.dev-empty{padding:22px 16px;font-size:12px;color:var(--sub);text-align:center;line-height:1.6}
 
-.ph-btns{display:flex;gap:10px;width:100%;max-width:400px}
-.pBtn{flex:1;padding:12px;border:none;border-radius:100px;font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
-.pBtn:active{opacity:.7}
-.pBtn.pri{background:var(--red);color:#fff}
-.pBtn.sec{background:rgba(255,255,255,.08);border:1px solid var(--border);color:#fff}
-#ph-log{font-size:11px;color:var(--sub);font-family:var(--mono)}
+.ph-btns{display:flex;gap:10px;width:100%;max-width:420px}
+.pBtn{
+  flex:1;padding:13px 16px;border:none;border-radius:100px;
+  font-family:var(--font);font-size:13.5px;font-weight:600;
+  cursor:pointer;transition:opacity .15s,transform .12s;
+  letter-spacing:.2px;
+}
+.pBtn:active{opacity:.75;transform:scale(.97)}
+.pBtn.pri{
+  background:var(--acc);color:#000;
+  box-shadow:0 0 20px rgba(0,212,255,.3);
+}
+.pBtn.sec{
+  background:rgba(255,255,255,.07);
+  border:1px solid var(--border);color:var(--text);
+}
+#ph-log{
+  font-size:11px;color:var(--sub);
+  font-family:var(--mono);letter-spacing:.3px;
+}
 
-/* ── TOP STATUS ── */
-#topbar{position:absolute;top:14px;left:0;right:0;display:flex;align-items:center;justify-content:center;gap:8px;z-index:20;pointer-events:none;transition:opacity .35s}
+/* ── TOP STATUS BAR ── */
+#topbar{
+  position:absolute;top:16px;left:0;right:0;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  z-index:20;pointer-events:none;transition:opacity .35s;
+}
 #topbar.hide{opacity:0}
-.badge{font-size:10px;font-family:var(--mono);padding:4px 10px;border-radius:100px;background:rgba(0,0,0,.7);backdrop-filter:var(--blur);border:1px solid rgba(255,255,255,.1);color:var(--sub);letter-spacing:.3px}
-.badge.live{background:rgba(232,25,44,.22);border-color:rgba(232,25,44,.4);color:var(--red)}
-#timer-wrap{display:none;align-items:center;gap:6px;font-size:11px;font-family:var(--mono);padding:4px 12px;border-radius:100px;background:rgba(232,25,44,.9);color:#fff;letter-spacing:1px}
+
+.badge{
+  font-size:10px;font-family:var(--mono);letter-spacing:.4px;
+  padding:4px 11px;border-radius:100px;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:var(--blur);
+  border:1px solid rgba(255,255,255,.1);
+  color:var(--sub);
+}
+.badge.live{
+  background:rgba(232,25,44,.18);
+  border-color:rgba(232,25,44,.35);
+  color:#ff4055;
+}
+.badge.acc{
+  background:rgba(0,212,255,.1);
+  border-color:rgba(0,212,255,.25);
+  color:var(--acc);
+}
+.badge[id="zoom-badge"]{display:none}
+
+#timer-wrap{
+  display:none;align-items:center;gap:6px;
+  font-size:11px;font-family:var(--mono);
+  padding:4px 13px;border-radius:100px;
+  background:rgba(232,25,44,.88);color:#fff;letter-spacing:1.2px;
+}
 #timer-wrap.on{display:flex}
-#timer-wrap::before{content:'';width:6px;height:6px;background:#fff;border-radius:50%;animation:blink 1s step-end infinite}
+#timer-wrap::before{
+  content:'';width:6px;height:6px;background:#fff;border-radius:50%;
+  animation:blink 1s step-end infinite;
+}
 @keyframes blink{50%{opacity:0}}
 
 /* ── BOTTOM CONTROLS ── */
-#ctrl{position:absolute;bottom:0;left:0;right:0;padding:18px 20px 22px;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.5) 65%,transparent 100%);display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:20;transition:opacity .4s,transform .4s}
-#ctrl.hide{opacity:0;transform:translateY(10px);pointer-events:none}
+#ctrl{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:16px 20px 24px;
+  background:linear-gradient(to top,rgba(0,0,0,.95) 0%,rgba(0,0,0,.55) 65%,transparent 100%);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  z-index:20;transition:opacity .4s,transform .4s;
+}
+#ctrl.hide{opacity:0;transform:translateY(8px);pointer-events:none}
 .cg{display:flex;align-items:center;gap:8px}
 
 /* icon button */
-.ib{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.11);backdrop-filter:var(--blur);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;transition:background .15s,transform .12s;flex-shrink:0}
-.ib:hover{background:rgba(255,255,255,.2)}
+.ib{
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,.09);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#fff;
+  transition:background .15s,transform .1s,box-shadow .15s;
+  flex-shrink:0;
+}
+.ib:hover{background:rgba(255,255,255,.17);box-shadow:0 0 12px rgba(255,255,255,.06)}
 .ib:active{transform:scale(.87)}
 .ib svg{width:17px;height:17px}
-.ib.muted{background:rgba(232,25,44,.18);border-color:rgba(232,25,44,.3);color:var(--red)}
-.ib.on{background:rgba(255,255,255,.22)}
+.ib.muted{background:rgba(232,25,44,.15);border-color:rgba(232,25,44,.28);color:#ff4055}
+.ib.on{background:rgba(0,212,255,.15);border-color:rgba(0,212,255,.3);color:var(--acc)}
 
 /* record button */
-#rec-btn{width:58px;height:58px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(232,25,44,.25);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;flex-shrink:0;transition:transform .12s}
+#rec-btn{
+  width:58px;height:58px;border-radius:50%;
+  background:var(--red);
+  box-shadow:0 0 0 3px rgba(232,25,44,.22),0 4px 20px rgba(232,25,44,.3);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:none;flex-shrink:0;
+  transition:transform .12s,box-shadow .12s;
+}
 #rec-btn:active{transform:scale(.9)}
-#rec-inner{width:22px;height:22px;background:#fff;border-radius:50%;transition:border-radius .22s,width .22s,height .22s}
+#rec-inner{
+  width:22px;height:22px;background:#fff;border-radius:50%;
+  transition:border-radius .22s,width .22s,height .22s;
+}
 #rec-btn.rec #rec-inner{border-radius:4px;width:16px;height:16px}
-#rec-btn.rec{animation:rpulse 1.6s ease-in-out infinite}
-@keyframes rpulse{0%,100%{box-shadow:0 0 0 3px rgba(232,25,44,.25)}50%{box-shadow:0 0 0 10px rgba(232,25,44,.08)}}
+#rec-btn.rec{animation:rpulse 1.8s ease-in-out infinite}
+@keyframes rpulse{
+  0%,100%{box-shadow:0 0 0 3px rgba(232,25,44,.22),0 4px 20px rgba(232,25,44,.3)}
+  50%{box-shadow:0 0 0 10px rgba(232,25,44,.07),0 4px 28px rgba(232,25,44,.4)}
+}
 
-/* select */
+/* dropdown select */
 .sel-wrap{position:relative;display:flex;align-items:center}
-.sel-wrap .chev{position:absolute;right:9px;width:10px;height:10px;pointer-events:none;color:var(--sub)}
-select.sel{appearance:none;background:rgba(255,255,255,.10);backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:100px;color:#fff;font-family:var(--font);font-size:11px;padding:7px 26px 7px 12px;cursor:pointer;outline:none;max-width:160px;white-space:nowrap}
-select.sel option{background:#1c1c1e;color:#fff}
+.sel-wrap .chev{
+  position:absolute;right:10px;width:10px;height:10px;
+  pointer-events:none;color:var(--sub);
+}
+select.sel{
+  appearance:none;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  border-radius:100px;color:var(--text);
+  font-family:var(--font);font-size:11px;
+  padding:8px 28px 8px 13px;cursor:pointer;outline:none;
+  max-width:155px;white-space:nowrap;
+}
+select.sel option{background:#111115;color:#fff}
+select.sel:focus{border-color:rgba(0,212,255,.35)}
+
+/* ── VOLUME SLIDER ── */
+#vol-wrap{
+  display:flex;align-items:center;gap:8px;
+  overflow:hidden;max-width:0;opacity:0;
+  transition:max-width .3s ease,opacity .3s ease;
+}
+#vol-wrap.show{max-width:110px;opacity:1}
+#vol-slider{
+  -webkit-appearance:none;appearance:none;
+  width:80px;height:3px;
+  border-radius:100px;outline:none;cursor:pointer;
+  background:linear-gradient(to right,var(--acc) 0%,var(--acc) 80%,rgba(255,255,255,.2) 80%);
+}
+#vol-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  background:#fff;cursor:pointer;
+  box-shadow:0 0 6px rgba(0,212,255,.5);
+  border:none;
+}
+#vol-slider::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;
+  background:#fff;cursor:pointer;border:none;
+  box-shadow:0 0 6px rgba(0,212,255,.5);
+}
 
 /* ── SETTINGS PANEL ── */
-#sp{position:absolute;bottom:82px;right:16px;width:270px;background:rgba(18,18,22,.97);backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:var(--r);padding:18px;z-index:30;display:none;flex-direction:column;gap:16px}
+#sp{
+  position:absolute;bottom:84px;right:16px;width:280px;
+  background:rgba(12,12,18,.97);
+  backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:20px;z-index:30;
+  display:none;flex-direction:column;gap:18px;
+}
 #sp.open{display:flex}
-.sp-title{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--sub)}
-.sp-row{display:flex;flex-direction:column;gap:8px}
+.sp-title{
+  font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--sub);display:flex;align-items:center;gap:8px;
+}
+.sp-title::before{
+  content:'';width:4px;height:4px;border-radius:50%;
+  background:var(--acc);flex-shrink:0;
+}
+.sp-row{display:flex;flex-direction:column;gap:9px}
 .opts{display:flex;gap:6px;flex-wrap:wrap}
-.opt{padding:5px 12px;border-radius:100px;background:rgba(255,255,255,.07);border:1px solid var(--border);color:#fff;font-family:var(--font);font-size:12px;cursor:pointer;transition:background .12s}
-.opt:hover{background:rgba(255,255,255,.14)}
-.opt.sel2{background:rgba(232,25,44,.22);border-color:rgba(232,25,44,.4);color:var(--red)}
+.opt{
+  padding:5px 13px;border-radius:100px;
+  background:rgba(255,255,255,.06);
+  border:1px solid var(--border);
+  color:var(--sub);font-family:var(--font);font-size:12px;
+  cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+}
+.opt:hover{background:rgba(255,255,255,.12);color:var(--text)}
+.opt.sel2{
+  background:rgba(0,212,255,.12);
+  border-color:rgba(0,212,255,.35);color:var(--acc);
+}
 
-/* ── HINTS ── */
-#hint{position:absolute;bottom:88px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.18);font-family:var(--mono);white-space:nowrap;pointer-events:none;transition:opacity .35s}
+/* ── HINT ── */
+#hint{
+  position:absolute;bottom:84px;left:50%;transform:translateX(-50%);
+  font-size:10px;color:rgba(255,255,255,.15);
+  font-family:var(--mono);white-space:nowrap;
+  pointer-events:none;transition:opacity .35s;letter-spacing:.3px;
+}
 #hint.hide{opacity:0}
 
 /* ── FLASH ── */
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:25}
-#flash.go{animation:fl .35s ease-out forwards}
-@keyframes fl{0%{opacity:.85}100%{opacity:0}}
+#flash.go{animation:fl .4s ease-out forwards}
+@keyframes fl{0%{opacity:.8}100%{opacity:0}}
 
 /* ── TOAST ── */
-#toast{position:absolute;top:54px;left:50%;transform:translateX(-50%) translateY(-4px);background:rgba(18,18,22,.96);backdrop-filter:var(--blur);border:1px solid var(--border);border-radius:10px;padding:8px 16px;font-size:12px;color:var(--text);pointer-events:none;opacity:0;transition:opacity .22s,transform .22s;z-index:40;white-space:nowrap}
+#toast{
+  position:absolute;top:56px;left:50%;
+  transform:translateX(-50%) translateY(-6px);
+  background:rgba(14,14,20,.97);
+  backdrop-filter:var(--blur);
+  border:1px solid var(--border);border-radius:var(--r2);
+  padding:8px 18px;font-size:12px;color:var(--text);
+  pointer-events:none;opacity:0;
+  transition:opacity .22s,transform .22s;z-index:40;white-space:nowrap;
+}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── ZOOM INDICATOR ── */
+#zoom-reset{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:11px;font-family:var(--mono);
+  padding:6px 14px;border-radius:100px;
+  background:rgba(0,0,0,.8);backdrop-filter:var(--blur);
+  border:1px solid rgba(255,255,255,.12);color:var(--sub);
+  pointer-events:none;opacity:0;transition:opacity .3s;z-index:22;
+}
+#zoom-reset.show{opacity:1}
 </style>
 </head>
 <body>
 <div id="app">
  <div id="vw">
 
-  <!-- Placeholder -->
+  <!-- Placeholder screen -->
   <div id="ph">
    <div class="logo">
-    <div class="logo-icon">
-     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
-      <rect x="2" y="7" width="15" height="11" rx="2"/>
-      <path d="M17 9l4-2v10l-4-2"/>
-      <circle cx="9" cy="12" r="2" fill="white" stroke="none"/>
+    <div class="logo-ring">
+     <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7">
+      <rect x="2" y="7" width="13" height="11" rx="2"/>
+      <path d="M15 9l5-2v10l-5-2"/>
+      <circle cx="8.5" cy="12.5" r="2" fill="white" stroke="none"/>
      </svg>
     </div>
     <div>
      <div class="logo-name">SwitchLens</div>
-     <div class="logo-sub">Game Capture Studio</div>
+     <div class="logo-tagline">Game Capture Studio</div>
     </div>
+   </div>
+
+   <div class="ph-spec">
+    <span class="spec-chip hi">4K · 60 FPS</span>
+    <span class="spec-chip hi">HDMI Capture</span>
+    <span class="spec-chip">WebGL Render</span>
+    <span class="spec-chip">Lossless PNG</span>
    </div>
 
    <div class="card">
@@ -153,8 +410,8 @@ select.sel option{background:#1c1c1e;color:#fff}
    </div>
 
    <div class="ph-btns">
-    <button class="pBtn sec" onclick="refreshDevices()">🔄 重新整理</button>
-    <button class="pBtn sec" onclick="showDiag()">🔍 診斷</button>
+    <button class="pBtn sec" onclick="refreshDevices()">重新整理</button>
+    <button class="pBtn sec" onclick="showDiag()">診斷</button>
     <button class="pBtn pri" onclick="startCapture()">▶ 開始擷取</button>
    </div>
    <div id="ph-log">插好擷取卡後點「重新整理」偵測設備</div>
@@ -168,17 +425,21 @@ select.sel option{background:#1c1c1e;color:#fff}
   <canvas id="snap" style="display:none"></canvas>
   <!-- Flash -->
   <div id="flash"></div>
+  <!-- Zoom hint -->
+  <div id="zoom-reset">雙擊重設縮放</div>
 
-  <!-- Top status -->
+  <!-- Top status bar -->
   <div id="topbar" class="hide">
    <div class="badge" id="res-badge">--</div>
+   <div class="badge acc" id="fps-badge" style="display:none">-- fps</div>
    <div class="badge live" id="live-badge" style="display:none">● LIVE</div>
+   <div class="badge acc" id="zoom-badge">1.0×</div>
    <div id="timer-wrap"><span id="timer-text">00:00:00</span></div>
   </div>
 
   <!-- Bottom controls -->
   <div id="ctrl" class="hide">
-   <!-- Left: selectors -->
+   <!-- Left: device selectors -->
    <div class="cg">
     <div class="sel-wrap">
      <select class="sel" id="vid-sel" onchange="switchVideo(this.value)"></select>
@@ -197,26 +458,34 @@ select.sel option{background:#1c1c1e;color:#fff}
 
    <!-- Right: tools -->
    <div class="cg">
+    <!-- Screenshot -->
     <div class="ib" onclick="takePhoto()" title="截圖 (S)">
-     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
       <circle cx="12" cy="13" r="4"/>
       <path d="M5 7h2l2-2h6l2 2h2a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2z"/>
      </svg>
     </div>
+    <!-- Audio monitor + volume slider -->
     <div class="ib" id="aud-btn" onclick="toggleAudioMonitor()" title="音訊監聽 (M)">
-     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="vol-svg">
+     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" id="vol-svg">
       <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
       <path id="vol-waves" d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>
      </svg>
     </div>
-    <div class="ib" id="sett-btn" onclick="toggleSettings()" title="設定">
-     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <!-- Volume slider (shown when audio on) -->
+    <div id="vol-wrap">
+     <input type="range" id="vol-slider" min="0" max="100" value="80" oninput="setVolume(this.value)">
+    </div>
+    <!-- Settings -->
+    <div class="ib" id="sett-btn" onclick="toggleSettings(event)" title="設定">
+     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
       <circle cx="12" cy="12" r="3"/>
       <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
      </svg>
     </div>
+    <!-- Fullscreen -->
     <div class="ib" onclick="toggleFS()" title="全螢幕 (F)">
-     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">
       <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
      </svg>
     </div>
@@ -244,7 +513,7 @@ select.sel option{background:#1c1c1e;color:#fff}
    </div>
   </div>
 
-  <div id="hint" class="hide">Space 錄影 · S 截圖 · M 音訊 · F 全螢幕</div>
+  <div id="hint" class="hide">Space 錄影 · S 截圖 · M 音訊 · F 全螢幕 · 滾輪縮放 · 雙擊重設</div>
   <div id="toast"></div>
  </div>
 </div>
@@ -252,28 +521,39 @@ select.sel option{background:#1c1c1e;color:#fff}
 <script>
 'use strict';
 
-// ── STATE ─────────────────────────────────────────────────────────────────
+// ── STATE ──────────────────────────────────────────────────────────────────
 var vidStream = null, audStream = null;
 var mediaRec = null, recChunks = [], isRec = false;
-var audOn = false, audEl = null;
+var audOn = false, audEl = null, volLevel = 0.8;
 var timerSec = 0, timerIv = null, idleTimer = null;
 var curVidId = null, curAudId = null;
 var bitrate = 8000000, fmtPref = 'auto';
 var allVid = [], allAud = [];
 var gl = null, glTex = null, rafId = null;
 
+// zoom/pan
+var zoomScale = 1, panX = 0, panY = 0;
+var isPanning = false, panStartX = 0, panStartY = 0, panOriginX = 0, panOriginY = 0;
+var zoomResetTmr = null;
+
+// FPS tracking
+var fpsLast = 0, fpsCount = 0, fpsVal = 0;
+
 var $ = function(id){ return document.getElementById(id); };
 var srcVideo = $('src'), glCanvas = $('glCanvas'), snapCanvas = $('snap');
 var ph = $('ph'), ctrl = $('ctrl'), topbar = $('topbar');
 var timerWrap = $('timer-wrap'), timerText = $('timer-text');
 var resBadge = $('res-badge'), liveBadge = $('live-badge');
+var fpsBadge = $('fps-badge'), zoomBadge = $('zoom-badge');
 var devList = $('dev-list'), audList = $('aud-list'), vidSel = $('vid-sel'), audSel = $('aud-sel');
 var sp = $('sp'), flash = $('flash'), toast = $('toast'), hint = $('hint');
+var volSlider = $('vol-slider'), volWrap = $('vol-wrap');
+var zoomResetEl = $('zoom-reset');
 
-// ── WEBGL ─────────────────────────────────────────────────────────────────
+// ── WEBGL ──────────────────────────────────────────────────────────────────
 function initGL() {
-  gl = glCanvas.getContext('webgl', {preserveDrawingBuffer: true}) ||
-       glCanvas.getContext('experimental-webgl', {preserveDrawingBuffer: true});
+  gl = glCanvas.getContext('webgl', {preserveDrawingBuffer:true}) ||
+       glCanvas.getContext('experimental-webgl', {preserveDrawingBuffer:true});
   if (!gl) return false;
 
   var vs = 'attribute vec2 p;attribute vec2 u;varying vec2 v;void main(){gl_Position=vec4(p,0,1);v=u;}';
@@ -281,7 +561,7 @@ function initGL() {
 
   function mkS(type, src) {
     var s = gl.createShader(type);
-    gl.shaderSource(s, src); gl.compileShader(s); return s;
+    gl.shaderSource(s,src); gl.compileShader(s); return s;
   }
   var prog = gl.createProgram();
   gl.attachShader(prog, mkS(gl.VERTEX_SHADER, vs));
@@ -308,7 +588,17 @@ function renderLoop() {
   rafId = requestAnimationFrame(renderLoop);
   if (!gl || srcVideo.readyState < 2) return;
   if (!srcVideo.videoWidth || !srcVideo.videoHeight) return;
-  // Match canvas to display pixels (devicePixelRatio) for sharpest output
+
+  // FPS counter
+  var now = performance.now();
+  fpsCount++;
+  if (now - fpsLast >= 1000) {
+    fpsVal = Math.round(fpsCount * 1000 / (now - fpsLast));
+    fpsCount = 0; fpsLast = now;
+    fpsBadge.textContent = fpsVal + ' fps';
+  }
+
+  // Match canvas to physical pixels
   var dpr = window.devicePixelRatio || 1;
   var cw = Math.round(glCanvas.clientWidth * dpr);
   var ch = Math.round(glCanvas.clientHeight * dpr);
@@ -320,30 +610,96 @@ function renderLoop() {
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
-// ── DEVICE HELPERS ────────────────────────────────────────────────────────
+// ── ZOOM / PAN ─────────────────────────────────────────────────────────────
+function applyTransform() {
+  glCanvas.style.transform = 'scale(' + zoomScale + ') translate(' + panX/zoomScale + 'px,' + panY/zoomScale + 'px)';
+}
+
+function updateZoomBadge() {
+  var z = zoomScale.toFixed(1);
+  zoomBadge.textContent = z + '×';
+  if (zoomScale > 1.05) {
+    zoomBadge.style.display = 'flex';
+  } else {
+    zoomBadge.style.display = 'none';
+    panX = 0; panY = 0;
+    applyTransform();
+  }
+}
+
+function showZoomHint() {
+  clearTimeout(zoomResetTmr);
+  if (zoomScale > 1.05) {
+    zoomResetEl.classList.add('show');
+    zoomResetTmr = setTimeout(function(){ zoomResetEl.classList.remove('show'); }, 1800);
+  }
+}
+
+var vw = document.getElementById('vw');
+
+vw.addEventListener('wheel', function(e) {
+  if (!vidStream) return;
+  e.preventDefault();
+  var delta = e.deltaY < 0 ? 1.12 : 0.89;
+  zoomScale = Math.max(1, Math.min(8, zoomScale * delta));
+  if (zoomScale < 1.05) { zoomScale = 1; panX = 0; panY = 0; }
+  applyTransform(); updateZoomBadge(); showZoomHint();
+}, {passive: false});
+
+vw.addEventListener('dblclick', function(e) {
+  if (!vidStream) return;
+  if (zoomScale > 1.05) {
+    zoomScale = 1; panX = 0; panY = 0;
+    applyTransform(); updateZoomBadge();
+    showToast('縮放已重設');
+  }
+});
+
+vw.addEventListener('mousedown', function(e) {
+  if (!vidStream || zoomScale <= 1.05) return;
+  // ignore clicks on controls/buttons
+  if (e.target.closest && (e.target.closest('#ctrl') || e.target.closest('#topbar') || e.target.closest('#sp'))) return;
+  isPanning = true;
+  panStartX = e.clientX; panStartY = e.clientY;
+  panOriginX = panX; panOriginY = panY;
+  glCanvas.classList.add('panning');
+  e.preventDefault();
+});
+
+window.addEventListener('mousemove', function(e) {
+  if (!isPanning) return;
+  var dx = e.clientX - panStartX;
+  var dy = e.clientY - panStartY;
+  panX = panOriginX + dx;
+  panY = panOriginY + dy;
+  applyTransform();
+});
+
+window.addEventListener('mouseup', function() {
+  if (isPanning) { isPanning = false; glCanvas.classList.remove('panning'); }
+});
+
+// ── DEVICE HELPERS ─────────────────────────────────────────────────────────
 function isCapture(label) {
   var l = (label||'').toLowerCase();
   return l.includes('capture')||l.includes('hdmi')||l.includes('uvc')||
          l.includes('game')||l.includes('switch')||l.includes('usb video')||l.includes('elgato');
 }
-
 function isUsbAudio(label) {
   var l = (label||'').toLowerCase();
-  return l.includes('usb')&&!l.includes('communications');
+  return l.includes('usb') && !l.includes('communications');
 }
-
 function isBuiltinAudio(label) {
   var l = (label||'').toLowerCase();
   return l.includes('built-in')||l.includes('internal')||l.includes('array')||
          l.includes('realtek')||l.includes('intel')||l.includes('conexant');
 }
-
 function shorten(label, idx, type) {
   if (!label) return (type==='v'?'視訊':'音訊') + ' ' + (idx+1);
   return label.length > 34 ? label.slice(0,32)+'…' : label;
 }
 
-// ── DEVICE ENUMERATION ────────────────────────────────────────────────────
+// ── DEVICE ENUMERATION ─────────────────────────────────────────────────────
 async function refreshDevices() {
   setLog('偵測設備中…');
   try {
@@ -365,7 +721,6 @@ async function refreshDevices() {
     curVidId = (cap || allVid[0] || {}).deviceId || null;
   }
   if (!curAudId && allAud.length > 0) {
-    // Priority: 1) labelled capture card  2) USB audio  3) non-builtin  4) first device
     var capA  = allAud.find(function(d){ return isCapture(d.label); });
     var usbA  = allAud.find(function(d){ return isUsbAudio(d.label) && d.deviceId!=='default'; });
     var nonBI = allAud.find(function(d){ return !isBuiltinAudio(d.label) && d.deviceId!=='default'; });
@@ -384,20 +739,16 @@ function renderDevList() {
     return;
   }
   allVid.forEach(function(d, i) {
-    var isCap = isCapture(d.label);
     var row = document.createElement('div');
     row.className = 'dev-item' + (d.deviceId===curVidId ? ' active' : '');
-
     var icon = document.createElement('div');
     icon.className = 'dev-icon';
     icon.innerHTML = '<svg viewBox="0 0 24 24"><rect x="2" y="7" width="13" height="10" rx="2"/><path d="M15 9l4-2v10l-4-2"/></svg>';
-
     var name = document.createElement('div');
     name.className = 'dev-name';
     name.textContent = shorten(d.label, i, 'v');
-
     row.appendChild(icon); row.appendChild(name);
-    if (isCap) {
+    if (isCapture(d.label)) {
       var tag = document.createElement('span');
       tag.className = 'cap-tag'; tag.textContent = '擷取卡';
       row.appendChild(tag);
@@ -407,31 +758,12 @@ function renderDevList() {
   });
 }
 
-function buildSelects() {
-  vidSel.innerHTML = '';
-  allVid.forEach(function(d,i){
-    var o = document.createElement('option');
-    o.value = d.deviceId; o.textContent = shorten(d.label,i,'v');
-    if (d.deviceId===curVidId) o.selected = true;
-    vidSel.appendChild(o);
-  });
-
-  audSel.innerHTML = '<option value="">🔇 無音訊</option>';
-  allAud.forEach(function(d,i){
-    var o = document.createElement('option');
-    o.value = d.deviceId; o.textContent = shorten(d.label,i,'a');
-    if (d.deviceId===curAudId) o.selected = true;
-    audSel.appendChild(o);
-  });
-}
-
 function renderAudList() {
   audList.innerHTML = '';
   if (!allAud.length) {
     audList.innerHTML = '<div class="dev-empty">未偵測到音訊設備<br>請確認瀏覽器已授予麥克風權限</div>';
     return;
   }
-  // Add "no audio" option
   var none = document.createElement('div');
   none.className = 'dev-item' + (!curAudId ? ' active' : '');
   none.innerHTML = '<div class="dev-icon"><svg viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23" stroke-width="2"/><path d="M9 9v3a3 3 0 005.12 2.12M15 9.34V4a3 3 0 00-5.94-.6"/><path d="M17 16.95A7 7 0 015 12v-2m14 0v2a7 7 0 01-.11 1.23M12 19v4M8 23h8"/></svg></div><div class="dev-name">不使用音訊</div>';
@@ -458,9 +790,26 @@ function renderAudList() {
   });
 }
 
+function buildSelects() {
+  vidSel.innerHTML = '';
+  allVid.forEach(function(d,i){
+    var o = document.createElement('option');
+    o.value = d.deviceId; o.textContent = shorten(d.label,i,'v');
+    if (d.deviceId===curVidId) o.selected = true;
+    vidSel.appendChild(o);
+  });
+  audSel.innerHTML = '<option value="">無音訊</option>';
+  allAud.forEach(function(d,i){
+    var o = document.createElement('option');
+    o.value = d.deviceId; o.textContent = shorten(d.label,i,'a');
+    if (d.deviceId===curAudId) o.selected = true;
+    audSel.appendChild(o);
+  });
+}
+
 function setLog(msg){ $('ph-log').textContent = msg; }
 
-// ── CAPTURE ───────────────────────────────────────────────────────────────
+// ── CAPTURE ────────────────────────────────────────────────────────────────
 async function startCapture() {
   if (!allVid.length) { await refreshDevices(); if (!allVid.length) return; }
   setLog('連接中…');
@@ -468,7 +817,6 @@ async function startCapture() {
     if (vidStream) vidStream.getTracks().forEach(function(t){ t.stop(); });
     if (audEl){ audEl.srcObject = null; audEl = null; }
 
-    // Pick audio device if not yet chosen
     if (!curAudId && allAud.length > 0) {
       var capA  = allAud.find(function(d){ return isCapture(d.label); });
       var usbA  = allAud.find(function(d){ return isUsbAudio(d.label) && d.deviceId!=='default'; });
@@ -477,14 +825,12 @@ async function startCapture() {
       curAudId = (capA||usbA||nonBI||first).deviceId;
     }
 
-    // Video only — hint ideal resolution so browser picks highest available
     var vidConstraint = {
       deviceId: curVidId ? {exact:curVidId} : undefined,
-      width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 60}
+      width: {ideal:1920}, height: {ideal:1080}, frameRate: {ideal:60}
     };
     vidStream = await navigator.mediaDevices.getUserMedia({ video:vidConstraint, audio:false });
 
-    // Audio — separate stream to avoid affecting video quality
     audStream = null;
     if (curAudId) {
       try {
@@ -493,7 +839,6 @@ async function startCapture() {
           video: false
         });
       } catch(eAud) {
-        // Try with just true (default device) as last fallback
         try {
           audStream = await navigator.mediaDevices.getUserMedia({ audio:true, video:false });
           showToast('⚠️ 指定音訊裝置失敗，使用預設麥克風');
@@ -508,11 +853,12 @@ async function startCapture() {
     await srcVideo.play();
     if (!gl) initGL();
     if (rafId) cancelAnimationFrame(rafId);
+    fpsLast = performance.now(); fpsCount = 0;
     renderLoop();
 
     srcVideo.onloadedmetadata = function(){
       var s = vidStream.getVideoTracks()[0].getSettings();
-      resBadge.textContent = (s.width||'?')+'×'+(s.height||'?')+' · '+Math.round(s.frameRate||0)+' fps';
+      resBadge.textContent = (s.width||'?')+'×'+(s.height||'?')+' · '+(s.frameRate ? Math.round(s.frameRate) : '--')+'fps';
     };
 
     ph.classList.add('gone');
@@ -520,10 +866,10 @@ async function startCapture() {
     topbar.classList.remove('hide');
     hint.classList.remove('hide');
     liveBadge.style.display = 'flex';
+    fpsBadge.style.display = 'flex';
     buildSelects();
     setupIdle();
 
-    // Auto-start audio monitoring
     if (audStream && audStream.getAudioTracks().length > 0) {
       audOn = true;
       startAudPlayback();
@@ -531,7 +877,7 @@ async function startCapture() {
     }
 
     var audLabel = audStream ? '含音訊 🔊' : '⚠️ 無音訊';
-    showToast('✅ 已連接 · ' + audLabel);
+    showToast('已連接 · ' + audLabel);
   } catch(e) {
     setLog('錯誤：' + e.message);
     showToast('❌ ' + e.message);
@@ -548,17 +894,11 @@ async function switchAudio(id) {
   curAudId = id || null;
   if (audEl){ audEl.srcObject = null; audEl = null; }
   if (!vidStream) return;
-
-  // Remove old audio tracks from vidStream
   vidStream.getAudioTracks().forEach(function(t){ t.stop(); vidStream.removeTrack(t); });
-
   if (!id) {
-    audStream = null;
-    audOn = false; updateAudUI();
-    showToast('🔇 音訊已停用');
-    return;
+    audStream = null; audOn = false; updateAudUI();
+    showToast('🔇 音訊已停用'); return;
   }
-
   try {
     var newAud = await navigator.mediaDevices.getUserMedia({
       audio: { deviceId:{exact:id}, echoCancellation:false, noiseSuppression:false, autoGainControl:false },
@@ -574,7 +914,7 @@ async function switchAudio(id) {
   }
 }
 
-// ── AUDIO MONITOR ─────────────────────────────────────────────────────────
+// ── AUDIO MONITOR + VOLUME ─────────────────────────────────────────────────
 function startAudPlayback() {
   if (audEl){ audEl.srcObject = null; audEl = null; }
   var tracks = audStream ? audStream.getAudioTracks() : [];
@@ -582,14 +922,14 @@ function startAudPlayback() {
   audEl = new Audio();
   audEl.srcObject = new MediaStream(tracks);
   audEl.muted = false;
+  audEl.volume = volLevel;
   audEl.play().catch(function(e){ showToast('⚠️ 音訊播放失敗：' + e.message); });
 }
 
 function toggleAudioMonitor() {
   var hasAudio = audStream && audStream.getAudioTracks().length > 0;
   if (!hasAudio && !audOn) {
-    showToast('⚠️ 無音訊來源，請從下拉選單選擇音訊設備');
-    return;
+    showToast('⚠️ 無音訊來源，請從下拉選單選擇音訊設備'); return;
   }
   audOn = !audOn;
   if (audOn) {
@@ -602,19 +942,26 @@ function toggleAudioMonitor() {
   updateAudUI();
 }
 
+function setVolume(val) {
+  volLevel = val / 100;
+  if (audEl) audEl.volume = volLevel;
+  // Update slider gradient fill
+  volSlider.style.background = 'linear-gradient(to right, var(--acc) 0%, var(--acc) ' + val + '%, rgba(255,255,255,.2) ' + val + '%)';
+}
+
 function updateAudUI() {
   var btn = $('aud-btn');
   btn.classList.toggle('muted', !audOn);
   $('vol-waves').style.display = audOn ? '' : 'none';
+  volWrap.classList.toggle('show', audOn);
 }
 
-// ── SCREENSHOT ────────────────────────────────────────────────────────────
+// ── SCREENSHOT ─────────────────────────────────────────────────────────────
 function takePhoto() {
   if (!vidStream) return;
   var w = srcVideo.videoWidth, h = srcVideo.videoHeight;
   if (!w || !h) return;
   snapCanvas.width = w; snapCanvas.height = h;
-  // Draw from srcVideo directly (always has current frame, no WebGL buffer issue)
   snapCanvas.getContext('2d').drawImage(srcVideo, 0, 0, w, h);
   flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
   snapCanvas.toBlob(function(b){
@@ -622,23 +969,20 @@ function takePhoto() {
     var a = document.createElement('a');
     a.href = URL.createObjectURL(b);
     a.download = 'SwitchLens_' + ts() + '.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(a.href);
   }, 'image/png');
   showToast('📸 截圖已儲存');
 }
 
-// ── RECORDING ─────────────────────────────────────────────────────────────
+// ── RECORDING ──────────────────────────────────────────────────────────────
 function getMime() {
   var lists = {
     mp4:  ['video/mp4;codecs=h264,aac','video/mp4;codecs=avc1','video/mp4'],
     webm: ['video/webm;codecs=h264,opus','video/webm;codecs=vp9,opus','video/webm'],
     auto: ['video/webm;codecs=h264,opus','video/mp4;codecs=h264,aac','video/webm;codecs=vp9,opus','video/webm']
   };
-  var pref = fmtPref === 'auto' ? 'auto' : fmtPref;
-  var candidates = lists[pref] || lists.auto;
+  var candidates = lists[fmtPref] || lists.auto;
   for (var i=0; i<candidates.length; i++){
     if (MediaRecorder.isTypeSupported(candidates[i])) return candidates[i];
   }
@@ -655,7 +999,7 @@ function startRec() {
   var combined = new MediaStream(tracks);
   var mime = getMime();
   try {
-    mediaRec = new MediaRecorder(combined, { mimeType: mime, videoBitsPerSecond: bitrate });
+    mediaRec = new MediaRecorder(combined, { mimeType:mime, videoBitsPerSecond:bitrate });
   } catch(e) {
     mediaRec = new MediaRecorder(combined);
   }
@@ -675,11 +1019,7 @@ function startRec() {
   timerWrap.classList.add('on');
   timerSec = 0; updateTimer();
   timerIv = setInterval(function(){ timerSec++; updateTimer(); }, 1000);
-  if (!audStream) {
-    showToast('⏺ 錄影中（⚠️ 無音訊，請從下拉選單選擇音訊設備）');
-  } else {
-    showToast('⏺ 開始錄影（含音訊）');
-  }
+  showToast(audStream ? '⏺ 開始錄影（含音訊）' : '⏺ 錄影中（⚠️ 無音訊）');
 }
 
 function stopRec() {
@@ -697,7 +1037,7 @@ function updateTimer() {
   timerText.textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 
-// ── SETTINGS ──────────────────────────────────────────────────────────────
+// ── SETTINGS ───────────────────────────────────────────────────────────────
 function toggleSettings(e) {
   if (e) e.stopPropagation();
   sp.classList.toggle('open');
@@ -727,7 +1067,7 @@ document.addEventListener('click', function(e){
 });
 sp.addEventListener('click', function(e){ e.stopPropagation(); });
 
-// ── FULLSCREEN ────────────────────────────────────────────────────────────
+// ── FULLSCREEN ─────────────────────────────────────────────────────────────
 function toggleFS() {
   var el = $('vw');
   if (!document.fullscreenElement) {
@@ -737,7 +1077,7 @@ function toggleFS() {
   }
 }
 
-// ── IDLE HIDE ─────────────────────────────────────────────────────────────
+// ── IDLE HIDE ──────────────────────────────────────────────────────────────
 function setupIdle() {
   function show() {
     ctrl.classList.remove('hide');
@@ -749,13 +1089,12 @@ function setupIdle() {
       hint.classList.add('hide');
     }, 3500);
   }
-  var vw = $('vw');
   vw.addEventListener('mousemove', show);
   vw.addEventListener('click', show);
   show();
 }
 
-// ── KEYBOARD ──────────────────────────────────────────────────────────────
+// ── KEYBOARD ───────────────────────────────────────────────────────────────
 document.addEventListener('keydown', function(e){
   if (e.target.tagName==='SELECT'||e.target.tagName==='INPUT') return;
   switch(e.code){
@@ -763,38 +1102,38 @@ document.addEventListener('keydown', function(e){
     case 'KeyS':  if(vidStream) takePhoto(); break;
     case 'KeyM':  if(vidStream) toggleAudioMonitor(); break;
     case 'KeyF':  toggleFS(); break;
+    case 'Escape':
+      if (zoomScale > 1.05) { zoomScale=1; panX=0; panY=0; applyTransform(); updateZoomBadge(); showToast('縮放已重設'); }
+      break;
   }
 });
 
-// ── TOAST ─────────────────────────────────────────────────────────────────
+// ── TOAST ──────────────────────────────────────────────────────────────────
 var toastTmr = null;
 function showToast(msg) {
   toast.textContent = msg; toast.classList.add('show');
   clearTimeout(toastTmr);
-  toastTmr = setTimeout(function(){ toast.classList.remove('show'); }, 2500);
+  toastTmr = setTimeout(function(){ toast.classList.remove('show'); }, 2800);
 }
 function ts(){ return new Date().toISOString().replace(/[:.]/g,'-').slice(0,19); }
 
-// ── DIAGNOSTICS ───────────────────────────────────────────────────────────
+// ── DIAGNOSTICS ─────────────────────────────────────────────────────────────
 function showDiag() {
   var lines = ['=== 視訊設備 (' + allVid.length + ') ==='];
-  allVid.forEach(function(d,i){
-    lines.push((i+1) + '. ' + (d.label||'(無標籤)') + '\n   ID: ' + d.deviceId.slice(0,20) + '…');
-  });
+  allVid.forEach(function(d,i){ lines.push((i+1)+'. '+(d.label||'(無標籤)')+'\n   ID: '+d.deviceId.slice(0,20)+'…'); });
   lines.push('\n=== 音訊設備 (' + allAud.length + ') ===');
-  allAud.forEach(function(d,i){
-    lines.push((i+1) + '. ' + (d.label||'(無標籤)') + '\n   ID: ' + d.deviceId.slice(0,20) + '…');
-  });
+  allAud.forEach(function(d,i){ lines.push((i+1)+'. '+(d.label||'(無標籤)')+'\n   ID: '+d.deviceId.slice(0,20)+'…'); });
   lines.push('\n=== 目前選擇 ===');
   var selVid = allVid.find(function(d){ return d.deviceId===curVidId; });
   var selAud = allAud.find(function(d){ return d.deviceId===curAudId; });
-  lines.push('視訊: ' + (selVid ? selVid.label : '未選擇'));
-  lines.push('音訊: ' + (selAud ? selAud.label : '未選擇'));
-  lines.push('音訊串流: ' + (audStream ? '✅ 已開啟 (' + audStream.getAudioTracks().length + ' 軌)' : '❌ 無'));
+  lines.push('視訊: '+(selVid?selVid.label:'未選擇'));
+  lines.push('音訊: '+(selAud?selAud.label:'未選擇'));
+  lines.push('音訊串流: '+(audStream?'✅ 已開啟 ('+audStream.getAudioTracks().length+' 軌)':'❌ 無'));
+  lines.push('FPS: '+fpsVal+' · 縮放: '+zoomScale.toFixed(1)+'×');
   alert(lines.join('\n'));
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────────────────────────
 refreshDevices();
 if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
   navigator.mediaDevices.addEventListener('devicechange', refreshDevices);
