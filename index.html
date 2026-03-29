@@ -15,7 +15,7 @@
                     colors: {
                         "primary": "#69f6b8", "primary-container": "#06b77f", "surface": "#0c0e11", 
                         "on-surface": "#f9f9fd", "surface-container-high": "#1d2024", "error": "#ff716c",
-                        "outline-variant": "#46484b", "surface-bright": "#292c31"
+                        "surface-bright": "#23262a"
                     },
                     fontFamily: { "headline": ["Space Grotesk"], "body": ["Manrope"] }
                 }
@@ -24,19 +24,21 @@
     </script>
     <style>
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-        .glass-panel { background: rgba(12, 14, 17, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+        .glass-panel { background: rgba(12, 14, 17, 0.9); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
         .recording-pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 113, 108, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(255, 113, 108, 0); } }
         canvas { width: 100%; height: 100%; object-fit: contain; cursor: none; transition: transform 0.05s linear; }
-        .show-cursor canvas { cursor: crosshair; }
         #flash { position: fixed; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 200; }
         .flash-active { animation: flash-anim 0.4s ease-out; }
         @keyframes flash-anim { 0% { opacity: 0.8; } 100% { opacity: 0; } }
         .ui-fade { transition: opacity 0.6s ease-in-out, transform 0.6s ease-in-out; opacity: 1; }
         .ui-hidden { opacity: 0 !important; pointer-events: none; transform: translateY(15px); }
         .ui-hidden-top { opacity: 0 !important; pointer-events: none; transform: translateY(-15px); }
+        
+        /* 增加按鈕點擊感 */
+        .card-active { border-color: #69f6b8 !important; background: rgba(105, 246, 184, 0.1) !important; }
+        .card-active span { color: #69f6b8 !important; }
         .emerald-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #69f6b8; cursor: pointer; border-radius: 50%; box-shadow: 0 0 10px rgba(105, 246, 184, 0.4); }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden h-screen w-screen selection:bg-primary selection:text-black">
@@ -46,10 +48,9 @@
     <header id="ui-header" class="ui-fade fixed top-0 w-full z-[100] flex justify-between items-center px-10 h-16 bg-[#0c0e11]/80 backdrop-blur-xl border-b border-white/5">
         <div class="text-xl font-bold text-primary tracking-widest font-headline uppercase">SwitchLens</div>
         <div class="flex items-center gap-6">
-            <div class="flex items-center gap-3 bg-white/5 rounded-full px-4 py-1.5 border border-white/10">
-                <button onclick="setLang('zh')" class="text-xs hover:text-primary transition-all lang-btn" data-l="zh">繁中</button>
-                <button onclick="setLang('en')" class="text-xs hover:text-primary transition-all lang-btn" data-l="en">EN</button>
-                <button onclick="setLang('ja')" class="text-xs hover:text-primary transition-all lang-btn" data-l="ja">日本語</button>
+            <div class="flex items-center gap-3 bg-white/5 rounded-full px-4 py-1 border border-white/10">
+                <button onclick="setLang('zh')" class="text-xs hover:text-primary lang-btn" data-l="zh">繁中</button>
+                <button onclick="setLang('en')" class="text-xs hover:text-primary lang-btn" data-l="en">EN</button>
             </div>
             <button onclick="toggleFS()" class="material-symbols-outlined text-on-surface/60 hover:text-primary">fullscreen</button>
         </div>
@@ -57,29 +58,29 @@
 
     <div id="setup-layer" class="fixed inset-0 z-[130] flex items-center justify-center p-6 transition-all duration-500">
         <div class="fixed inset-0 bg-surface/98 backdrop-blur-3xl"></div>
-        <div class="relative w-full max-w-2xl bg-surface-container-high/60 rounded-[40px] p-12 md:p-16 shadow-2xl border border-white/5 text-center">
-            <h1 class="font-headline font-bold text-4xl text-primary mb-2 tracking-tight">SwitchLens Pro</h1>
-            <p class="text-on-surface/60 text-lg uppercase tracking-widest mb-10 italic opacity-50">Studio Control Architecture</p>
+        <div class="relative w-full max-w-2xl bg-surface-container-high/60 rounded-[40px] p-12 shadow-2xl border border-white/5 text-center">
+            <h1 class="font-headline font-bold text-4xl text-primary mb-2">SwitchLens Pro</h1>
+            <p class="text-on-surface/40 uppercase tracking-[0.3em] mb-12 text-sm italic">Professional Studio Capture</p>
 
             <div class="space-y-6 mb-12 text-left">
                 <div class="grid grid-cols-2 gap-4">
-                    <div id="perm-vid" class="flex items-center justify-between bg-black/20 p-5 rounded-2xl border border-white/5">
+                    <div id="perm-vid" class="flex items-center justify-between bg-black/20 p-5 rounded-2xl border border-white/5 transition-all">
                         <span class="text-on-surface font-medium text-sm t-perm-vid">影像權限</span>
                         <span id="icon-vid" class="material-symbols-outlined text-amber-500">lock</span>
                     </div>
-                    <div id="perm-aud" class="flex items-center justify-between bg-black/20 p-5 rounded-2xl border border-white/5">
+                    <div id="perm-aud" class="flex items-center justify-between bg-black/20 p-5 rounded-2xl border border-white/5 transition-all">
                         <span class="text-on-surface font-medium text-sm t-perm-aud">音訊權限</span>
                         <span id="icon-aud" class="material-symbols-outlined text-amber-500">lock</span>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
-                        <label class="block text-primary text-xs font-bold uppercase tracking-widest ml-1 opacity-60 t-label-vid">視訊 Video</label>
-                        <select id="vid-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary transition-all text-on-surface cursor-pointer appearance-none outline-none"></select>
+                        <label class="block text-primary text-xs font-bold uppercase tracking-widest ml-1 opacity-60">視訊 Video</label>
+                        <select id="vid-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary text-on-surface cursor-pointer outline-none appearance-none"></select>
                     </div>
                     <div class="space-y-2">
-                        <label class="block text-primary text-xs font-bold uppercase tracking-widest ml-1 opacity-60 t-label-aud">音訊 Audio</label>
-                        <select id="aud-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary transition-all text-on-surface cursor-pointer appearance-none outline-none"></select>
+                        <label class="block text-primary text-xs font-bold uppercase tracking-widest ml-1 opacity-60">音訊 Audio</label>
+                        <select id="aud-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary text-on-surface cursor-pointer outline-none appearance-none"></select>
                     </div>
                 </div>
             </div>
@@ -93,14 +94,14 @@
 
     <main id="vw" class="relative z-0 h-screen w-screen bg-black flex items-center justify-center overflow-hidden">
         <div id="rec-status" class="hidden absolute top-24 left-1/2 -translate-x-1/2 z-50 flex items-center bg-error/20 backdrop-blur-md border border-error/30 px-6 py-2 rounded-full ui-fade">
-            <span class="w-2 h-2 bg-error rounded-full mr-3 animate-pulse shadow-[0_0_8px_#ff716c]"></span>
-            <span id="timer-text" class="font-headline font-bold text-error tracking-widest text-sm">REC 00:00:00</span>
+            <span class="w-2 h-2 bg-error rounded-full mr-3 animate-pulse"></span>
+            <span id="timer-text" class="font-headline font-bold text-error tracking-widest text-sm uppercase">REC 00:00:00</span>
         </div>
         <video id="src" class="hidden" autoplay playsinline muted></video>
         <canvas id="glCanvas"></canvas>
-        <div id="telemetry" class="ui-fade absolute bottom-32 left-10 z-30 opacity-40 font-headline pointer-events-none transition-opacity hidden">
+        <div id="telemetry" class="ui-fade absolute bottom-32 left-10 z-30 opacity-40 font-headline pointer-events-none hidden transition-opacity">
             <div id="res-badge" class="text-white text-lg font-bold">---</div>
-            <div id="fps-badge" class="text-primary text-sm tracking-widest uppercase">-- FPS</div>
+            <div id="fps-badge" class="text-primary text-sm tracking-widest">-- FPS</div>
         </div>
     </main>
 
@@ -125,90 +126,73 @@
     </nav>
 
     <div id="adv-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-6 bg-surface/40 backdrop-blur-sm">
-        <div class="w-full max-w-5xl glass-panel rounded-[32px] shadow-2xl flex flex-col max-h-[85vh] border border-white/10 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div class="w-full max-w-5xl glass-panel rounded-[40px] shadow-2xl flex flex-col max-h-[85vh] border border-white/10 overflow-hidden animate-in zoom-in-95 duration-200">
             <div class="p-10 pb-4 flex justify-between items-start">
                 <div>
-                    <h2 class="font-headline text-2xl font-bold tracking-tight text-on-surface t-adv-title">進階設定 (Advanced Settings)</h2>
-                    <p class="text-on-surface/50 mt-2 text-lg t-adv-desc">配置您的專業級錄製環境與系統偏好。</p>
+                    <h2 class="font-headline text-3xl font-bold tracking-tight text-on-surface">進階設定 (Advanced Settings)</h2>
+                    <p class="text-on-surface/40 mt-2 text-lg italic">Elite Studio Configuration</p>
                 </div>
-                <button onclick="closeAdvanced()" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/5 text-on-surface transition-all">
-                    <span class="material-symbols-outlined text-3xl">close</span>
-                </button>
+                <button onclick="closeAdvanced()" class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/5 text-on-surface transition-all"><span class="material-symbols-outlined text-3xl">close</span></button>
             </div>
             
             <div class="flex-1 overflow-y-auto p-10 grid grid-cols-1 md:grid-cols-2 gap-16 no-scrollbar">
                 <div class="space-y-12">
                     <section>
-                        <h3 class="font-headline text-lg font-semibold text-primary mb-6 flex items-center gap-3">
-                            <span class="material-symbols-outlined">memory</span> 錄製編碼 (Encoding)
-                        </h3>
+                        <h3 class="font-headline text-lg font-semibold text-primary mb-6 flex items-center gap-3"><span class="material-symbols-outlined">memory</span> 錄製編碼 (Encoding)</h3>
                         <div class="space-y-4">
-                            <div class="flex items-center justify-between p-4 bg-surface-bright rounded-xl border border-primary/20">
+                            <div onclick="setEncoding('hw')" id="enc-hw" class="flex items-center justify-between p-5 bg-surface-bright rounded-2xl border border-white/5 cursor-pointer hover:border-primary/30 transition-all">
                                 <span class="text-lg font-medium">硬體加速 (NVENC / H.265)</span>
-                                <div class="w-10 h-5 bg-primary/40 rounded-full relative flex items-center px-1"><div class="w-3 h-3 bg-primary rounded-full translate-x-5 transition-transform"></div></div>
+                                <div id="toggle-hw" class="w-10 h-5 bg-white/10 rounded-full relative flex items-center px-1"><div class="toggle-dot w-3 h-3 bg-white/40 rounded-full transition-all"></div></div>
                             </div>
-                            <div class="flex items-center justify-between p-4 bg-surface-container-high/40 rounded-xl opacity-40">
+                            <div onclick="setEncoding('sw')" id="enc-sw" class="flex items-center justify-between p-5 bg-surface-bright rounded-2xl border border-white/5 cursor-pointer hover:border-primary/30 transition-all">
                                 <span class="text-lg font-medium">軟體編碼 (x264 Library)</span>
-                                <div class="w-10 h-5 bg-white/10 rounded-full relative flex items-center px-1"><div class="w-3 h-3 bg-white/40 rounded-full transition-transform"></div></div>
+                                <div id="toggle-sw" class="w-10 h-5 bg-white/10 rounded-full relative flex items-center px-1"><div class="toggle-dot w-3 h-3 bg-white/40 rounded-full transition-all"></div></div>
                             </div>
                         </div>
                     </section>
                     <section>
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="font-headline text-lg font-semibold text-primary flex items-center gap-3">
-                                <span class="material-symbols-outlined">speed</span> 視訊位元率 (Bitrate)
-                            </h3>
-                            <span id="br-display" class="font-headline text-primary font-bold text-xl">16.0 <span class="text-sm font-normal opacity-60">Mbps</span></span>
+                            <h3 class="font-headline text-lg font-semibold text-primary flex items-center gap-3"><span class="material-symbols-outlined">speed</span> 視訊位元率 (Bitrate)</h3>
+                            <span id="br-display" class="font-headline text-primary font-bold text-xl">16.0 <span class="text-sm font-normal opacity-40">Mbps</span></span>
                         </div>
-                        <input id="br-slider" class="w-full h-1 bg-white/10 rounded-full appearance-none cursor-pointer emerald-slider" max="50000000" min="2000000" step="1000000" type="range" value="16000000"/>
-                        <div class="flex justify-between mt-4 text-xs opacity-40 font-headline"><span>2 Mbps</span><span>50 Mbps</span></div>
+                        <input id="br-slider" class="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer emerald-slider" max="50000000" min="1000000" step="1000000" type="range" value="16000000"/>
                     </section>
                 </div>
 
                 <div class="space-y-12">
                     <section>
-                        <h3 class="font-headline text-lg font-semibold text-primary mb-6 flex items-center gap-3">
-                            <span class="material-symbols-outlined">surround_sound</span> 監聽模式 (Monitoring)
-                        </h3>
+                        <h3 class="font-headline text-lg font-semibold text-primary mb-6 flex items-center gap-3"><span class="material-symbols-outlined">surround_sound</span> 監聽模式 (Monitoring)</h3>
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="p-6 bg-primary/10 border border-primary/30 rounded-xl flex flex-col gap-3 group cursor-pointer transition-all">
-                                <span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">high_quality</span>
+                            <div id="mon-hi" onclick="setMonitoring('hi')" class="p-8 bg-surface-bright border border-white/5 rounded-2xl flex flex-col gap-3 group cursor-pointer transition-all">
+                                <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">high_quality</span>
                                 <span class="font-bold text-lg">High Fidelity</span>
-                                <span class="text-sm opacity-40">無損音質傳輸</span>
+                                <span class="text-xs opacity-40">原音無損傳輸</span>
                             </div>
-                            <div class="p-6 bg-surface-bright rounded-xl flex flex-col gap-3 group hover:border-white/10 border border-transparent cursor-pointer transition-all">
-                                <span class="material-symbols-outlined opacity-40">bolt</span>
-                                <span class="font-bold text-lg opacity-60">Low Latency</span>
-                                <span class="text-sm opacity-40">極低延遲監聽</span>
+                            <div id="mon-low" onclick="setMonitoring('low')" class="p-8 bg-surface-bright border border-white/5 rounded-2xl flex flex-col gap-3 group cursor-pointer transition-all">
+                                <span class="material-symbols-outlined text-2xl">bolt</span>
+                                <span class="font-bold text-lg">Low Latency</span>
+                                <span class="text-xs opacity-40">極低延遲監聽</span>
                             </div>
                         </div>
                     </section>
                     <section>
-                        <h3 class="font-headline text-lg font-semibold text-primary mb-6 flex items-center gap-3">
-                            <span class="material-symbols-outlined">settings_suggest</span> 系統優化 (System)
-                        </h3>
+                        <h3 class="font-headline text-lg font-semibold text-primary mb-6 flex items-center gap-3"><span class="material-symbols-outlined">settings_suggest</span> 系統優化 (System)</h3>
                         <div class="space-y-4">
-                            <div class="flex items-center justify-between p-5 bg-surface-bright rounded-xl">
-                                <div><span class="text-lg font-bold block">顯示畫面數據</span><span class="text-sm opacity-40">在角落顯示目前的解析度與 FPS</span></div>
+                            <div class="flex items-center justify-between p-5 bg-surface-bright rounded-2xl border border-white/5">
+                                <div><span class="text-lg font-bold block">顯示畫面數據</span><span class="text-sm opacity-40 italic">於角落顯示解析度與 FPS</span></div>
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" id="info-toggle-adv" class="sr-only peer" onchange="syncInfoBadge(this)">
                                     <div class="w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-primary/40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white/40 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 peer-checked:after:bg-primary"></div>
                                 </label>
-                            </div>
-                            <div class="flex items-center justify-between p-5 bg-surface-bright rounded-xl">
-                                <div><span class="text-lg font-bold block">自動備援存檔</span><span class="text-sm opacity-40">系統異常時自動保存段落</span></div>
-                                <div class="w-10 h-5 bg-primary/40 rounded-full relative flex items-center px-1"><div class="w-3 h-3 bg-primary rounded-full translate-x-5 transition-transform"></div></div>
                             </div>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <div class="p-10 pt-4 flex justify-end gap-6 items-center border-t border-white/5 bg-surface/40">
-                <button onclick="closeAdvanced()" class="text-on-surface/40 font-medium hover:text-on-surface transition-colors t-adv-discard">捨棄變更</button>
-                <button onclick="closeAdvanced()" class="bg-primary-container text-black font-headline font-bold py-4 px-10 rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20 t-adv-save">
-                    儲存並套用 (Apply Changes)
-                </button>
+            <div class="p-10 pt-4 flex justify-end gap-6 items-center bg-black/20 border-t border-white/5">
+                <button onclick="closeAdvanced()" class="text-on-surface/40 font-medium hover:text-on-surface transition-colors">捨棄變更</button>
+                <button onclick="closeAdvanced()" class="bg-primary-container text-black font-headline font-bold py-4 px-12 rounded-2xl hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/30">儲存並套用 Apply</button>
             </div>
         </div>
     </div>
@@ -216,40 +200,65 @@
     <canvas id="snap-canvas" class="hidden"></canvas>
 
     <script>
+        // --- 核心狀態 ---
         const LANGS = {
-            zh: {
-                "t-perm-vid": "影像權限", "t-perm-aud": "音訊權限",
-                "t-label-vid": "視訊 Video", "t-label-aud": "音訊 Audio",
-                "t-btn-start": "開始擷取", "t-nav-snap": "截圖", "t-nav-rec": "錄製",
-                "t-nav-aud": "音訊", "t-nav-sett": "設定", "msg-no-aud": "不使用音訊",
-                "t-adv-title": "進階設定 (Advanced Settings)", "t-adv-desc": "配置您的專業級錄製環境與系統偏好。",
-                "t-adv-discard": "捨棄變更", "t-adv-save": "儲存並套用"
-            },
-            en: {
-                "t-perm-vid": "Video Perm", "t-perm-aud": "Audio Perm",
-                "t-label-vid": "Video", "t-label-aud": "Audio",
-                "t-btn-start": "Start Capture", "t-nav-snap": "Snap", "t-nav-rec": "Record",
-                "t-nav-aud": "Audio", "t-nav-sett": "Settings", "msg-no-aud": "No Audio",
-                "t-adv-title": "Advanced Settings", "t-adv-desc": "Configure your professional recording env.",
-                "t-adv-discard": "Discard", "t-adv-save": "Apply Changes"
-            }
+            zh: { "t-perm-vid": "影像權限", "t-perm-aud": "音訊權限", "t-btn-start": "開始擷取", "t-nav-snap": "截圖", "t-nav-rec": "錄製", "t-nav-aud": "音訊", "t-nav-sett": "設定", "msg-no-aud": "不使用音訊" },
+            en: { "t-perm-vid": "Video Perm", "t-perm-aud": "Audio Perm", "t-btn-start": "Start Capture", "t-nav-snap": "Snap", "t-nav-rec": "Record", "t-nav-aud": "Audio", "t-nav-sett": "Settings", "msg-no-aud": "No Audio" }
         };
 
         let curLang = 'zh', vidStream, audStream, mediaRec, recChunks = [], isRec = false;
-        let audOn = false, audEl, timerSec = 0, timerIv, idleTimer;
-        let gl, glTex, rafId, zoomScale = 1, panX = 0, panY = 0;
-        let bitrate = 16000000;
+        let audOn = false, audEl, timerSec = 0, timerIv, idleTimer, zoomScale = 1;
+        let bitrate = 16000000, curEncoding = 'hw', curMonitoring = 'hi';
 
         const $ = id => document.getElementById(id);
 
-        // --- 核心與語言 ---
+        // --- 完善功能鍵 1：編碼切換 (Encoding Architecture) ---
+        function setEncoding(type) {
+            curEncoding = type;
+            // 視覺更新
+            const isHw = type === 'hw';
+            $('enc-hw').classList.toggle('card-active', isHw);
+            $('enc-sw').classList.toggle('card-active', !isHw);
+            
+            $('toggle-hw').querySelector('.toggle-dot').className = `toggle-dot w-3 h-3 rounded-full transition-all ${isHw ? 'bg-primary translate-x-5' : 'bg-white/40'}`;
+            $('toggle-hw').className = `w-10 h-5 rounded-full relative flex items-center px-1 transition-all ${isHw ? 'bg-primary/40' : 'bg-white/10'}`;
+            
+            $('toggle-sw').querySelector('.toggle-dot').className = `toggle-dot w-3 h-3 rounded-full transition-all ${!isHw ? 'bg-primary translate-x-5' : 'bg-white/40'}`;
+            $('toggle-sw').className = `w-10 h-5 rounded-full relative flex items-center px-1 transition-all ${!isHw ? 'bg-primary/40' : 'bg-white/10'}`;
+            
+            console.log("錄製編碼切換至:", type === 'hw' ? "硬體加速 (H.265)" : "軟體壓碼 (x264)");
+        }
+
+        // --- 完善功能鍵 2：監聽模式 (Monitoring Mode) ---
+        async function setMonitoring(mode) {
+            curMonitoring = mode;
+            // 視覺更新
+            $('mon-hi').classList.toggle('card-active', mode === 'hi');
+            $('mon-low').classList.toggle('card-active', mode === 'low');
+
+            // 如果正在擷取，則重新套用音訊約束
+            if (audStream) {
+                const audioTrack = audStream.getAudioTracks()[0];
+                const constraints = mode === 'hi' ? 
+                    { echoCancellation: false, noiseSuppression: false, autoGainControl: false } : 
+                    { echoCancellation: true, noiseSuppression: true, latency: 0.01 };
+                
+                try {
+                    await audioTrack.applyConstraints(constraints);
+                    if (audOn) playAudio(); // 重新播放以套用變更
+                } catch(e) { console.warn("音訊約束套用失敗", e); }
+            }
+            console.log("監聽模式切換至:", mode === 'hi' ? "High Fidelity" : "Low Latency");
+        }
+
+        // --- 完善功能鍵 3：數據疊層同步 ---
+        function syncInfoBadge(el) { $('telemetry').classList.toggle('hidden', !el.checked); }
+
+        // --- 基礎初始化與設備偵測 ---
         function setLang(lang) {
             curLang = lang;
             const t = LANGS[lang];
-            Object.keys(t).forEach(key => {
-                const el = document.querySelector(`.${key}`);
-                if (el) el.textContent = t[key];
-            });
+            Object.keys(t).forEach(key => { if ($(key)) $(key).textContent = t[key]; });
             checkPermissions();
         }
 
@@ -262,7 +271,6 @@
                 $('icon-vid').classList.toggle('text-primary', hasV);
                 $('icon-aud').textContent = hasA ? 'check_circle' : 'lock';
                 $('icon-aud').classList.toggle('text-primary', hasA);
-                
                 if (hasV) {
                     $('main-start-btn').onclick = startCapture;
                     $('main-start-icon').textContent = 'play_arrow';
@@ -273,6 +281,14 @@
             } catch (e) {}
         }
 
+        async function refreshDevices() {
+            const devs = await navigator.mediaDevices.enumerateDevices();
+            const vD = devs.filter(d => d.kind === 'videoinput');
+            const aD = devs.filter(d => d.kind === 'audioinput');
+            $('vid-sel').innerHTML = vD.map(d => `<option value="${d.deviceId}">${d.label || 'Video Source'}</option>`).join('');
+            $('aud-sel').innerHTML = `<option value="">-- ${LANGS[curLang]['msg-no-aud']} --</option>` + aD.map(d => `<option value="${d.deviceId}">${d.label || 'Audio Source'}</option>`).join('');
+        }
+
         async function requestPermissions() {
             try {
                 const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -281,33 +297,29 @@
             } catch (e) { alert("請授權權限以使用。"); }
         }
 
-        async function refreshDevices() {
-            const devs = await navigator.mediaDevices.enumerateDevices();
-            const vD = devs.filter(d => d.kind === 'videoinput');
-            const aD = devs.filter(d => d.kind === 'audioinput');
-            $('vid-sel').innerHTML = vD.map(d => `<option value="${d.deviceId}">${d.label || 'Video'}</option>`).join('');
-            $('aud-sel').innerHTML = `<option value="">-- ${LANGS[curLang]['msg-no-aud']} --</option>` + aD.map(d => `<option value="${d.deviceId}">${d.label || 'Audio'}</option>`).join('');
-        }
-
-        // --- 啟動與隱藏 UI ---
         async function startCapture() {
             try {
                 vidStream = await navigator.mediaDevices.getUserMedia({
                     video: { deviceId: {exact: $('vid-sel').value}, width: 1920, height: 1080, frameRate: 60 }
                 });
                 if ($('aud-sel').value) {
-                    audStream = await navigator.mediaDevices.getUserMedia({ audio: {deviceId: {exact: $('aud-sel').value}} });
+                    audStream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: { deviceId: {exact: $('aud-sel').value}, echoCancellation: false } 
+                    });
                 }
                 $('src').srcObject = vidStream;
                 $('setup-layer').classList.add('opacity-0', 'pointer-events-none');
                 initGL();
-                rafId = requestAnimationFrame(renderLoop);
+                requestAnimationFrame(renderLoop);
                 if(audStream) { audOn = true; playAudio(); }
-                updateAudUI();
                 initIdleTimer();
-            } catch (e) { alert("啟動失敗: " + e.message); }
+                // 預設初始化進階按鈕狀態
+                setEncoding('hw');
+                setMonitoring('hi');
+            } catch (e) { alert("連線失敗: " + e.message); }
         }
 
+        // --- 自動隱藏與 UI ---
         function initIdleTimer() {
             const showUI = () => {
                 document.body.classList.add('show-cursor');
@@ -330,17 +342,11 @@
             showUI();
         }
 
-        // --- 進階設定功能 ---
-        function syncInfoBadge(el) { $('telemetry').classList.toggle('hidden', !el.checked); }
         function openAdvanced() { $('adv-modal').classList.remove('hidden'); }
         function closeAdvanced() { $('adv-modal').classList.add('hidden'); }
-        
-        $('br-slider').oninput = function() {
-            bitrate = this.value;
-            $('br-display').innerHTML = (this.value/1000000).toFixed(1) + ' <span class="text-sm font-normal opacity-60">Mbps</span>';
-        };
+        $('br-slider').oninput = function() { bitrate = this.value; $('br-display').innerHTML = (this.value/1000000).toFixed(1) + ' <span class="text-sm font-normal opacity-40">Mbps</span>'; };
 
-        // --- 渲染與操作 ---
+        // --- 渲染引擎 ---
         function initGL() {
             gl = $('glCanvas').getContext('webgl', {preserveDrawingBuffer:true});
             const vs = 'attribute vec2 p;attribute vec2 u;varying vec2 v;void main(){gl_Position=vec4(p,0,1);v=u;}';
@@ -362,8 +368,7 @@
         }
 
         function renderLoop() {
-            rafId = requestAnimationFrame(renderLoop);
-            if(!gl || $('src').readyState < 2) return;
+            if(!gl || $('src').readyState < 2) { rafId = requestAnimationFrame(renderLoop); return; }
             const dpr = window.devicePixelRatio || 1;
             $('glCanvas').width = $('glCanvas').clientWidth * dpr;
             $('glCanvas').height = $('glCanvas').clientHeight * dpr;
@@ -373,22 +378,16 @@
             const s = vidStream.getVideoTracks()[0].getSettings();
             $('res-badge').textContent = `${s.width}x${s.height}`;
             $('fps-badge').textContent = Math.round(s.frameRate || 60) + " FPS";
+            requestAnimationFrame(renderLoop);
         }
 
-        function takePhoto() {
-            const cvs = $('snap-canvas');
-            cvs.width = $('src').videoWidth; cvs.height = $('src').videoHeight;
-            cvs.getContext('2d').drawImage($('src'), 0, 0);
-            $('flash').classList.add('flash-active');
-            setTimeout(() => $('flash').classList.remove('flash-active'), 400);
-            cvs.toBlob(b => {
-                const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Shot_${Date.now()}.png`; a.click();
-            });
-        }
-
+        // --- 錄影、截圖與音訊 ---
         function toggleRec() {
             if(!isRec) {
-                let mime = MediaRecorder.isTypeSupported('video/webm;codecs=h264') ? 'video/webm;codecs=h264' : 'video/webm';
+                // 硬體加速邏輯：如果是 hw，則強制使用 h264/avc1
+                let mime = curEncoding === 'hw' ? 'video/webm;codecs=h264' : 'video/webm';
+                if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
+                
                 recChunks = [];
                 const tracks = [...vidStream.getVideoTracks(), ...(audStream ? audStream.getAudioTracks() : [])];
                 mediaRec = new MediaRecorder(new MediaStream(tracks), { mimeType: mime, videoBitsPerSecond: bitrate });
@@ -412,22 +411,21 @@
             }
         }
 
+        function takePhoto() {
+            const cvs = $('snap-canvas');
+            cvs.width = $('src').videoWidth; cvs.height = $('src').videoHeight;
+            cvs.getContext('2d').drawImage($('src'), 0, 0);
+            $('flash').classList.add('flash-active');
+            setTimeout(() => $('flash').classList.remove('flash-active'), 400);
+            cvs.toBlob(b => {
+                const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Screenshot_${Date.now()}.png`; a.click();
+            });
+        }
+
         function toggleAudio() { audOn = !audOn; if (audOn && audStream) { playAudio(); } else if (audEl) { audEl.pause(); } updateAudUI(); }
         function playAudio() { if(audEl) audEl.pause(); audEl = new Audio(); audEl.srcObject = audStream; if(audOn) audEl.play(); }
-        function updateAudUI() {
-            const t = LANGS[curLang];
-            $('aud-icon').textContent = audOn ? 'volume_up' : 'volume_off';
-            $('aud-toggle').classList.toggle('text-primary', audOn);
-        }
+        function updateAudUI() { $('aud-icon').textContent = audOn ? 'volume_up' : 'volume_off'; $('aud-toggle').classList.toggle('text-primary', audOn); }
         function toggleFS() { if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-
-        // 縮放
-        function applyTrans() { $('glCanvas').style.transform = `scale(${zoomScale}) translate(${panX/zoomScale}px, ${panY/zoomScale}px)`; }
-        $('vw').addEventListener('wheel', e => { e.preventDefault(); zoomScale = Math.max(1, Math.min(8, zoomScale * (e.deltaY < 0 ? 1.1 : 0.9))); if(zoomScale < 1.01) { zoomScale = 1; panX = 0; panY = 0; } applyTrans(); }, {passive: false});
-        $('vw').addEventListener('mousedown', e => { if(zoomScale <= 1) return; isPanning = true; panStartX = e.clientX; panStartY = e.clientY; panOriginX = panX; panOriginY = panY; });
-        window.addEventListener('mousemove', e => { if(!isPanning) return; panX = panOriginX + e.clientX - panStartX; panY = panOriginY + e.clientY - panStartY; applyTrans(); });
-        window.addEventListener('mouseup', () => isPanning = false);
-        $('vw').addEventListener('dblclick', () => { zoomScale = 1; panX = 0; panY = 0; applyTrans(); });
 
         setLang('zh');
         navigator.mediaDevices.ondevicechange = checkPermissions;
