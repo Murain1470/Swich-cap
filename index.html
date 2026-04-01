@@ -7,122 +7,286 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-  tailwind.config = {
-    darkMode: "class",
-    theme: {
-      extend: {
-        colors: {
-          "primary": "#69f6b8", "surface": "#0c0e11", "surface-bright": "#1d2024",
-          "on-surface": "#f9f9fd", "error": "#ff716c", "link-blue": "#00D4FF"
-        },
-        fontFamily: { "headline": ["Space Grotesk"], "body": ["Manrope"] }
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#69f6b8",
+        "surface": "#0c0e11",
+        "surface-bright": "#1d2024",
+        "on-surface": "#f9f9fd",
+        "error": "#ff716c",
+        "link-blue": "#00D4FF"
+      },
+      fontFamily: {
+        "headline": ["Space Grotesk", "sans-serif"],
+        "body": ["Manrope", "sans-serif"]
       }
     }
   }
+}
 </script>
 <style>
   .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-  .glass-panel { background: rgba(12, 14, 17, 0.95); backdrop-filter: blur(32px); }
-  #canvas-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; }
-  canvas { aspect-ratio: 16 / 9; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; cursor: crosshair; transition: transform 0.05s linear; z-index: 10; }
-  #src { position: absolute; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
-  .ui-fade { transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out; opacity: 1; }
-  .ui-hidden { opacity: 0 !important; pointer-events: none; transform: translateY(20px); }
-  .ui-hidden-top { opacity: 0 !important; pointer-events: none; transform: translateY(-15px); }
-  .card-active { border-color: #69f6b8 !important; background: rgba(105, 246, 184, 0.1) !important; color: #69f6b8 !important; }
-  .emerald-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #69f6b8; cursor: pointer; border-radius: 50%; }
+  .glass-panel { background: rgba(12,14,17,0.95); backdrop-filter: blur(32px); }
+  #canvas-container { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#000; }
+  canvas { aspect-ratio:16/9; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; cursor:crosshair; transition:transform 0.05s linear; z-index:10; }
+  #src { position:absolute; width:1px; height:1px; opacity:0.01; pointer-events:none; }
+  .ui-fade { transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out; opacity:1; }
+  .ui-hidden { opacity:0!important; pointer-events:none; transform:translateY(20px); }
+  .ui-hidden-top { opacity:0!important; pointer-events:none; transform:translateY(-15px); }
+  .card-active { border-color:#69f6b8!important; background:rgba(105,246,184,0.1)!important; color:#69f6b8!important; }
+  /* Permission block */
+  .perm-icon { animation: perm-pulse 2s ease-in-out infinite; }
+  @keyframes perm-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
+  .perm-step { display:flex; align-items:flex-start; gap:14px; padding:16px 20px; border-radius:16px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); margin-bottom:10px; }
+  .perm-badge { min-width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+  /* Keyboard badge */
+  kbd { display:inline-block; padding:2px 8px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:6px; font-family:monospace; font-size:11px; color:#69f6b8; }
+  /* Audio mode buttons */
+  .audio-mode-btn { padding:12px 20px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); background:transparent; color:rgba(255,255,255,0.4); cursor:pointer; font-family:'Manrope',sans-serif; font-weight:600; font-size:13px; transition:all 0.2s; flex:1; text-align:center; }
+  .audio-mode-btn.active { border-color:#69f6b8; background:rgba(105,246,184,0.12); color:#69f6b8; }
+  /* Lang buttons */
+  .lang-btn { padding:4px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:transparent; color:rgba(255,255,255,0.35); cursor:pointer; font-size:11px; font-weight:700; font-family:'Manrope',sans-serif; transition:all 0.2s; letter-spacing:0.05em; }
+  .lang-btn.active { border-color:#69f6b8; color:#69f6b8; background:rgba(105,246,184,0.08); }
+  .no-scrollbar::-webkit-scrollbar { display:none; }
+  .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
 </style>
 </head>
 <body class="bg-surface text-on-surface font-body overflow-hidden h-screen w-screen selection:bg-primary selection:text-black">
 
 <div id="flash" class="fixed inset-0 bg-white opacity-0 pointer-events-none z-[300]"></div>
 
+<!-- ── Header ── -->
 <header id="ui-header" class="ui-fade fixed top-0 w-full z-[120] flex justify-between items-center px-10 h-16 bg-black/40 backdrop-blur-md border-b border-white/5">
   <div class="text-xl font-bold text-link-blue tracking-widest font-headline uppercase">SwitchLens Pro</div>
-  <button onclick="toggleFS()" class="material-symbols-outlined text-on-surface/40 hover:text-primary transition-all">fullscreen</button>
+  <div class="flex items-center gap-5">
+    <div class="hidden md:flex items-center gap-3 text-[10px] text-on-surface/30 font-bold uppercase tracking-widest">
+      <span><kbd>Space</kbd> <span data-i18n="shortcut_rec">錄影</span></span>
+      <span><kbd>S</kbd> <span data-i18n="shortcut_shot">截圖</span></span>
+      <span><kbd>M</kbd> <span data-i18n="shortcut_mute">靜音</span></span>
+      <span><kbd>F</kbd> <span data-i18n="shortcut_fs">全螢幕</span></span>
+    </div>
+    <!-- Language switcher -->
+    <div class="flex items-center gap-1">
+      <button class="lang-btn active" onclick="setLang('zh')">中文</button>
+      <button class="lang-btn" onclick="setLang('en')">EN</button>
+      <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+    </div>
+    <button onclick="toggleFS()" class="material-symbols-outlined text-on-surface/40 hover:text-primary transition-all">fullscreen</button>
+  </div>
 </header>
 
+<!-- ── Setup Layer ── -->
 <div id="setup-layer" class="fixed inset-0 z-[200] flex items-center justify-center p-6 transition-all duration-500">
   <div class="fixed inset-0 bg-surface/98 backdrop-blur-3xl"></div>
-  <div class="relative w-full max-w-2xl bg-surface-bright/60 rounded-[40px] p-12 md:p-16 shadow-2xl border border-white/5 text-center">
-    <h1 class="font-headline font-bold text-4xl text-link-blue mb-2 uppercase tracking-tight">SwitchLens</h1>
-    <p class="text-on-surface/20 uppercase tracking-[0.4em] mb-12 text-[10px] font-bold">Elite Capture System</p>
+  <div class="relative w-full max-w-2xl bg-surface-bright/60 rounded-[40px] p-12 md:p-16 shadow-2xl border border-white/5">
 
-    <div class="space-y-6 mb-12 text-left">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="space-y-2">
-          <label class="block text-primary text-[10px] font-bold uppercase tracking-widest ml-1 opacity-60">影像來源 Video Source</label>
-          <select id="vid-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary text-on-surface cursor-pointer outline-none appearance-none"></select>
+    <div class="text-center mb-10">
+      <h1 class="font-headline font-bold text-4xl text-link-blue mb-2 uppercase tracking-tight">SwitchLens</h1>
+      <p class="text-on-surface/20 uppercase tracking-[0.4em] text-[10px] font-bold" data-i18n="subtitle">Elite Capture System</p>
+    </div>
+
+    <!-- ★ Permission notice ★ -->
+    <div class="mb-8 p-5 rounded-2xl border border-primary/20 bg-primary/5">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="material-symbols-outlined text-primary perm-icon" style="font-size:22px">info</span>
+        <span class="text-primary font-bold text-sm uppercase tracking-widest" data-i18n="perm_title">開始前請確認瀏覽器權限</span>
+      </div>
+      <div class="perm-step">
+        <div class="perm-badge" style="background:rgba(0,212,255,0.12)">
+          <span class="material-symbols-outlined text-link-blue" style="font-size:20px">videocam</span>
         </div>
-        <div class="space-y-2">
-          <label class="block text-primary text-[10px] font-bold uppercase tracking-widest ml-1 opacity-60">音訊來源 Audio Source</label>
-          <select id="aud-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary text-on-surface cursor-pointer outline-none appearance-none"></select>
+        <div>
+          <div class="font-bold text-on-surface text-sm mb-1" data-i18n="perm_cam_title">📷 攝影機（Camera）權限</div>
+          <div class="text-on-surface/40 text-xs leading-relaxed" data-i18n="perm_cam_desc">瀏覽器會跳出授權視窗，請選擇「允許」。若使用擷取卡，請在下方選單選擇對應的影像裝置。</div>
         </div>
+      </div>
+      <div class="perm-step">
+        <div class="perm-badge" style="background:rgba(105,246,184,0.12)">
+          <span class="material-symbols-outlined text-primary" style="font-size:20px">mic</span>
+        </div>
+        <div>
+          <div class="font-bold text-on-surface text-sm mb-1" data-i18n="perm_mic_title">🎙️ 麥克風（Microphone）權限</div>
+          <div class="text-on-surface/40 text-xs leading-relaxed" data-i18n="perm_mic_desc">同樣需要授權，才能擷取 Switch 的遊戲聲音。請選擇對應的音訊輸入裝置（通常是 HDMI / USB 擷取卡）。</div>
+        </div>
+      </div>
+      <div class="mt-3 px-1 text-[10px] text-on-surface/25 leading-relaxed" data-i18n="perm_note">⚠️ 若看不到裝置清單或清單是空的，請先插好擷取卡再重新整理頁面。所有媒體資料僅在本機處理，不會上傳至任何伺服器。</div>
+    </div>
+
+    <!-- Device selects -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="space-y-2">
+        <label class="block text-primary text-[10px] font-bold uppercase tracking-widest ml-1 opacity-60" data-i18n="label_video">影像來源</label>
+        <select id="vid-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary text-on-surface cursor-pointer outline-none appearance-none"></select>
+      </div>
+      <div class="space-y-2">
+        <label class="block text-primary text-[10px] font-bold uppercase tracking-widest ml-1 opacity-60" data-i18n="label_audio">音訊來源</label>
+        <select id="aud-sel" class="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 focus:border-primary text-on-surface cursor-pointer outline-none appearance-none"></select>
       </div>
     </div>
 
     <button id="main-start-btn" onclick="handleStart()" class="w-full bg-primary text-black font-headline font-bold text-xl py-6 rounded-2xl flex items-center justify-center gap-4 hover:brightness-110 active:scale-95 transition-all shadow-xl shadow-primary/20">
-      <span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
-      <span>開始擷取</span>
+      <span class="material-symbols-outlined text-2xl" style="font-variation-settings:'FILL' 1;">play_arrow</span>
+      <span data-i18n="btn_start">授權並開始擷取</span>
     </button>
-    <p id="ph-log" class="mt-6 text-[10px] text-primary uppercase tracking-widest opacity-40 italic">READY TO INITIALIZE</p>
+    <p id="ph-log" class="mt-6 text-[10px] text-primary uppercase tracking-widest opacity-40 italic text-center" data-i18n="status_ready">READY TO INITIALIZE</p>
   </div>
 </div>
 
+<!-- ── Main View ── -->
 <main id="vw" class="relative z-0 h-screen w-screen bg-[#050505] flex items-center justify-center overflow-hidden">
   <video id="src" autoplay playsinline muted></video>
-  <div id="canvas-container">
-    <canvas id="glCanvas"></canvas>
-  </div>
+  <div id="canvas-container"><canvas id="glCanvas"></canvas></div>
 
   <div id="rec-status" class="hidden absolute top-24 left-1/2 -translate-x-1/2 z-50 flex items-center bg-error/20 backdrop-blur-md border border-error/30 px-6 py-2 rounded-full ui-fade">
     <span class="w-2 h-2 bg-error rounded-full mr-3 animate-pulse shadow-[0_0_8px_#ff716c]"></span>
     <span id="timer-text" class="font-headline font-bold text-error tracking-widest text-sm uppercase">REC 00:00:00</span>
   </div>
 
-  <div id="telemetry" class="ui-fade absolute bottom-32 left-10 z-30 opacity-40 font-headline pointer-events-none hidden transition-opacity">
+  <div id="telemetry" class="ui-fade absolute bottom-32 left-10 z-30 opacity-40 font-headline pointer-events-none hidden">
     <div id="res-badge" class="text-white text-lg font-bold">---</div>
     <div id="fps-badge" class="text-primary text-xs font-bold uppercase tracking-widest">-- FPS</div>
+    <div class="text-on-surface/30 text-[10px] font-bold uppercase tracking-widest mt-1">WebGL · Low-Latency</div>
   </div>
 </main>
 
+<!-- ── Bottom Nav ── -->
 <nav id="ui-bottom" class="ui-fade hidden fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-10 bg-[#1d2024]/70 backdrop-blur-xl rounded-full px-12 py-4 border border-white/10 shadow-2xl">
-  <button onclick="takePhoto()" class="flex flex-col items-center gap-1 text-on-surface/60 hover:text-primary transition-all group">
+  <button onclick="takePhoto()" class="flex flex-col items-center gap-1 text-on-surface/60 hover:text-primary transition-all group" title="S">
     <span class="material-symbols-outlined text-[28px] group-hover:scale-110">photo_camera</span>
-    <span class="text-[10px] uppercase tracking-widest font-bold">截圖</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold" data-i18n="nav_shot">截圖</span>
   </button>
-  <button id="rec-btn" onclick="toggleRec()" class="flex flex-col items-center mx-2 active:scale-95 transition-all group">
+  <button id="rec-btn" onclick="toggleRec()" class="flex flex-col items-center mx-2 active:scale-95 transition-all" title="Space">
     <span id="rec-icon" class="material-symbols-outlined text-[56px] text-error">fiber_manual_record</span>
-    <span class="text-[10px] font-bold text-error uppercase tracking-widest">Record</span>
+    <span class="text-[10px] font-bold text-error uppercase tracking-widest" data-i18n="nav_rec">錄影</span>
   </button>
-  <button id="aud-btn" onclick="toggleAudioMonitor()" class="flex flex-col items-center gap-1 text-on-surface/60 hover:text-primary transition-all">
+  <button id="aud-btn" onclick="toggleAudioMonitor()" class="flex flex-col items-center gap-1 text-on-surface/60 hover:text-primary transition-all" title="M">
     <span id="vol-icon" class="material-symbols-outlined text-[28px]">volume_up</span>
-    <span class="text-[10px] uppercase tracking-widest font-bold">Audio</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold" data-i18n="nav_audio">音訊</span>
   </button>
   <button onclick="openAdvanced()" class="flex flex-col items-center gap-1 text-on-surface/60 hover:text-primary transition-all">
     <span class="material-symbols-outlined text-[28px]">tune</span>
-    <span class="text-[10px] uppercase tracking-widest font-bold">設定</span>
+    <span class="text-[10px] uppercase tracking-widest font-bold" data-i18n="nav_settings">設定</span>
   </button>
 </nav>
 
+<!-- ── Advanced Modal ── -->
 <div id="adv-modal" class="hidden fixed inset-0 z-[250] flex items-center justify-center p-6 bg-surface/60 backdrop-blur-md">
   <div class="w-full max-w-5xl glass-panel rounded-[40px] shadow-2xl flex flex-col max-h-[85vh] border border-white/10 overflow-hidden">
     <div class="p-10 pb-4 flex justify-between items-start">
-      <div><h2 class="font-headline text-3xl font-bold text-on-surface">進階設定 (Advanced Settings)</h2><p class="text-on-surface/40 mt-2 text-lg italic font-bold">Elite Studio Configuration</p></div>
-      <button onclick="closeAdvanced()" class="p-4 rounded-full hover:bg-white/5 transition-all text-on-surface"><span class="material-symbols-outlined text-3xl">close</span></button>
+      <div>
+        <h2 class="font-headline text-3xl font-bold text-on-surface" data-i18n="adv_title">進階設定</h2>
+        <p class="text-on-surface/40 mt-2 text-lg italic font-bold">Elite Studio Configuration</p>
+      </div>
+      <button onclick="closeAdvanced()" class="p-4 rounded-full hover:bg-white/5 transition-all text-on-surface">
+        <span class="material-symbols-outlined text-3xl">close</span>
+      </button>
     </div>
+
     <div class="flex-1 overflow-y-auto p-10 grid grid-cols-1 md:grid-cols-2 gap-16 no-scrollbar">
+      <!-- Left col -->
       <div class="space-y-12">
-        <section><h3 class="text-primary font-headline font-bold mb-6 flex items-center gap-3 uppercase tracking-widest"><span class="material-symbols-outlined">memory</span> 錄製編碼</h3><div class="p-5 bg-surface-bright rounded-2xl border border-primary/40 card-active cursor-default"><span class="text-lg font-medium">硬體加速 (NVENC / H.265)</span></div></section>
-        <section><div class="flex justify-between items-end mb-6"><h3 class="text-primary font-headline font-bold flex items-center gap-3 uppercase tracking-widest"><span class="material-symbols-outlined">speed</span> 視訊位元率</h3><span id="br-display" class="font-headline text-primary font-bold text-2xl tracking-tighter">16.0 <span class="text-xs font-normal uppercase">Mbps</span></span></div><input id="br-slider" type="range" min="2000000" max="50000000" value="16000000" class="w-full h-1.5 bg-white/10 rounded-full appearance-none accent-primary cursor-pointer"></section>
+        <section>
+          <h3 class="text-primary font-headline font-bold mb-6 flex items-center gap-3 uppercase tracking-widest">
+            <span class="material-symbols-outlined">memory</span><span data-i18n="sec_format">錄製格式</span>
+          </h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div id="fmt-webm" class="p-4 bg-surface-bright border rounded-2xl text-center font-bold cursor-pointer transition-all card-active" onclick="setFormat('webm')">
+              <div class="text-sm">WebM</div><div class="text-[10px] opacity-60 mt-1">VP9 / Opus</div>
+            </div>
+            <div id="fmt-mp4" class="p-4 bg-surface-bright border border-white/5 rounded-2xl text-center font-bold cursor-pointer transition-all opacity-50 hover:opacity-80" onclick="setFormat('mp4')">
+              <div class="text-sm text-on-surface">MP4</div>
+              <div class="text-[10px] opacity-40 mt-1 text-on-surface" data-i18n="fmt_mp4_sub">H.264 相容</div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="flex justify-between items-end mb-6">
+            <h3 class="text-primary font-headline font-bold flex items-center gap-3 uppercase tracking-widest">
+              <span class="material-symbols-outlined">speed</span><span data-i18n="sec_bitrate">視訊位元率</span>
+            </h3>
+            <span id="br-display" class="font-headline text-primary font-bold text-2xl tracking-tighter">16.0 <span class="text-xs font-normal uppercase">Mbps</span></span>
+          </div>
+          <input id="br-slider" type="range" min="2000000" max="50000000" value="16000000" class="w-full h-1.5 bg-white/10 rounded-full appearance-none accent-primary cursor-pointer">
+          <div class="flex justify-between text-[10px] text-on-surface/30 mt-2"><span>2 Mbps</span><span>16 Mbps</span><span>50 Mbps</span></div>
+        </section>
+
+        <section>
+          <h3 class="text-primary font-headline font-bold mb-4 flex items-center gap-3 uppercase tracking-widest">
+            <span class="material-symbols-outlined">keyboard</span><span data-i18n="sec_shortcuts">快捷鍵</span>
+          </h3>
+          <div class="text-sm space-y-0">
+            <div class="flex justify-between items-center py-2 border-b border-white/5">
+              <span class="text-on-surface/60" data-i18n="shortcut_rec_label">開始 / 停止錄影</span><kbd>Space</kbd>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-white/5">
+              <span class="text-on-surface/60" data-i18n="shortcut_shot_label">截圖 PNG</span><kbd>S</kbd>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-white/5">
+              <span class="text-on-surface/60" data-i18n="shortcut_mute_label">靜音 / 取消靜音</span><kbd>M</kbd>
+            </div>
+            <div class="flex justify-between items-center py-2">
+              <span class="text-on-surface/60" data-i18n="shortcut_fs_label">全螢幕切換</span><kbd>F</kbd>
+            </div>
+          </div>
+        </section>
       </div>
+
+      <!-- Right col -->
       <div class="space-y-12">
-        <section><h3 class="text-primary font-headline font-bold mb-6 flex items-center gap-3 uppercase tracking-widest"><span class="material-symbols-outlined">surround_sound</span> 監聽模式</h3><div class="grid grid-cols-2 gap-4"><div class="p-8 bg-surface-bright border border-primary/40 bg-primary/5 rounded-2xl text-center font-bold text-primary card-active">無損音質</div><div class="p-8 bg-surface-bright border border-white/5 rounded-2xl text-center opacity-40">極低延遲</div></div></section>
-        <section><div class="flex items-center justify-between p-6 bg-surface-bright rounded-2xl border border-white/5"><div><span class="text-lg font-bold block opacity-90 text-white">顯示畫面數據</span><span class="text-[11px] opacity-40 italic">顯示解析度與 FPS 疊層</span></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" id="info-toggle" onchange="syncOverlay(this)" class="sr-only peer"><div class="w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-primary/40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white/40 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 peer-checked:after:bg-primary"></div></label></div></section>
+        <section>
+          <h3 class="text-primary font-headline font-bold mb-6 flex items-center gap-3 uppercase tracking-widest">
+            <span class="material-symbols-outlined">surround_sound</span><span data-i18n="sec_audio_mode">監聽模式</span>
+          </h3>
+          <div class="flex gap-3">
+            <button id="mode-hifi" class="audio-mode-btn active" onclick="setAudioMode('hifi')">
+              🎵 High Fidelity<br><span class="text-[10px] opacity-60" data-i18n="audio_hifi_sub">無損傳輸品質</span>
+            </button>
+            <button id="mode-low" class="audio-mode-btn" onclick="setAudioMode('low')">
+              ⚡ Low Latency<br><span class="text-[10px] opacity-60" data-i18n="audio_low_sub">極低延遲優先</span>
+            </button>
+          </div>
+        </section>
+
+        <section>
+          <div class="flex items-center justify-between p-6 bg-surface-bright rounded-2xl border border-white/5">
+            <div>
+              <span class="text-lg font-bold block opacity-90 text-white" data-i18n="overlay_title">顯示畫面數據</span>
+              <span class="text-[11px] opacity-40 italic" data-i18n="overlay_sub">顯示解析度與 FPS 疊層</span>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="info-toggle" onchange="syncOverlay(this)" class="sr-only peer">
+              <div class="w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-primary/40 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white/40 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 peer-checked:after:bg-primary"></div>
+            </label>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="text-primary font-headline font-bold mb-4 flex items-center gap-3 uppercase tracking-widest">
+            <span class="material-symbols-outlined">zoom_in</span><span data-i18n="sec_zoom">縮放控制</span>
+          </h3>
+          <div class="text-sm text-on-surface/50 space-y-0">
+            <div class="flex items-center gap-3 py-2 border-b border-white/5">
+              <span class="material-symbols-outlined text-base">mouse</span><span data-i18n="zoom_wheel">滾輪縮放（最大 8x）</span>
+            </div>
+            <div class="flex items-center gap-3 py-2 border-b border-white/5">
+              <span class="material-symbols-outlined text-base">drag_pan</span><span data-i18n="zoom_drag">拖曳平移畫面</span>
+            </div>
+            <div class="flex items-center gap-3 py-2">
+              <span class="material-symbols-outlined text-base">touch_app</span><span data-i18n="zoom_dbl">雙擊重設至原始比例</span>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
-    <div class="p-10 flex justify-end bg-black/20 border-t border-white/5"><button onclick="closeAdvanced()" class="bg-primary text-black font-headline font-bold py-4 px-12 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all">儲存並套用 Apply</button></div>
+
+    <div class="p-10 flex justify-end bg-black/20 border-t border-white/5">
+      <button onclick="closeAdvanced()" class="bg-primary text-black font-headline font-bold py-4 px-12 rounded-2xl shadow-xl shadow-primary/20 active:scale-95 transition-all" data-i18n="btn_apply">儲存並套用</button>
+    </div>
   </div>
 </div>
 
@@ -130,182 +294,327 @@
 
 <script>
 'use strict';
+
+// ════════════════════════════════
+// i18n
+// ════════════════════════════════
+const LANGS = {
+  zh: {
+    subtitle:'Elite Capture System',
+    perm_title:'開始前請確認瀏覽器權限',
+    perm_cam_title:'📷 攝影機（Camera）權限',
+    perm_cam_desc:'瀏覽器會跳出授權視窗，請選擇「允許」。若使用擷取卡，請在下方選單選擇對應的影像裝置。',
+    perm_mic_title:'🎙️ 麥克風（Microphone）權限',
+    perm_mic_desc:'同樣需要授權，才能擷取 Switch 的遊戲聲音。請選擇對應的音訊輸入裝置（通常是 HDMI / USB 擷取卡）。',
+    perm_note:'⚠️ 若看不到裝置清單或清單是空的，請先插好擷取卡再重新整理頁面。所有媒體資料僅在本機處理，不會上傳至任何伺服器。',
+    label_video:'影像來源', label_audio:'音訊來源',
+    btn_start:'授權並開始擷取',
+    status_ready:'READY TO INITIALIZE',
+    status_authorizing:'正在請求授權...',
+    status_success:'授權成功，啟動中...',
+    status_fail:'❌ 授權失敗，請重新允許相機與麥克風',
+    nav_shot:'截圖', nav_rec:'錄影', nav_audio:'音訊', nav_settings:'設定',
+    adv_title:'進階設定',
+    sec_format:'錄製格式', fmt_mp4_sub:'H.264 相容',
+    sec_bitrate:'視訊位元率',
+    sec_shortcuts:'快捷鍵',
+    shortcut_rec:'錄影', shortcut_shot:'截圖', shortcut_mute:'靜音', shortcut_fs:'全螢幕',
+    shortcut_rec_label:'開始 / 停止錄影', shortcut_shot_label:'截圖 PNG',
+    shortcut_mute_label:'靜音 / 取消靜音', shortcut_fs_label:'全螢幕切換',
+    sec_audio_mode:'監聽模式', audio_hifi_sub:'無損傳輸品質', audio_low_sub:'極低延遲優先',
+    overlay_title:'顯示畫面數據', overlay_sub:'顯示解析度與 FPS 疊層',
+    sec_zoom:'縮放控制', zoom_wheel:'滾輪縮放（最大 8x）', zoom_drag:'拖曳平移畫面', zoom_dbl:'雙擊重設至原始比例',
+    btn_apply:'儲存並套用',
+  },
+  en: {
+    subtitle:'Elite Capture System',
+    perm_title:'Grant Browser Permissions First',
+    perm_cam_title:'📷 Camera Permission',
+    perm_cam_desc:'A browser dialog will appear — click "Allow". If using a capture card, select the correct video device from the dropdown below.',
+    perm_mic_title:'🎙️ Microphone Permission',
+    perm_mic_desc:'Required to capture Switch game audio. Select your HDMI / USB capture card as the audio input device.',
+    perm_note:'⚠️ If the device list is empty, connect your capture card and refresh the page. All media is processed locally — nothing is uploaded.',
+    label_video:'Video Source', label_audio:'Audio Source',
+    btn_start:'Authorize & Start Capture',
+    status_ready:'READY TO INITIALIZE',
+    status_authorizing:'Requesting permissions...',
+    status_success:'Authorized. Starting...',
+    status_fail:'❌ Permission denied. Please allow camera & microphone access.',
+    nav_shot:'Photo', nav_rec:'Record', nav_audio:'Audio', nav_settings:'Settings',
+    adv_title:'Advanced Settings',
+    sec_format:'Recording Format', fmt_mp4_sub:'H.264 Compatible',
+    sec_bitrate:'Video Bitrate',
+    sec_shortcuts:'Keyboard Shortcuts',
+    shortcut_rec:'Record', shortcut_shot:'Screenshot', shortcut_mute:'Mute', shortcut_fs:'Fullscreen',
+    shortcut_rec_label:'Start / Stop Recording', shortcut_shot_label:'Screenshot PNG',
+    shortcut_mute_label:'Mute / Unmute', shortcut_fs_label:'Toggle Fullscreen',
+    sec_audio_mode:'Monitor Mode', audio_hifi_sub:'Lossless quality', audio_low_sub:'Minimum latency',
+    overlay_title:'Show Overlay', overlay_sub:'Display resolution & FPS overlay',
+    sec_zoom:'Zoom Controls', zoom_wheel:'Scroll to zoom (up to 8x)', zoom_drag:'Drag to pan', zoom_dbl:'Double-click to reset',
+    btn_apply:'Save & Apply',
+  },
+  ja: {
+    subtitle:'エリートキャプチャーシステム',
+    perm_title:'開始前にブラウザの権限を確認してください',
+    perm_cam_title:'📷 カメラの権限',
+    perm_cam_desc:'ブラウザの許可ダイアログで「許可」を選択してください。キャプチャーカードを使用する場合は、下のメニューから対応するデバイスを選択してください。',
+    perm_mic_title:'🎙️ マイクの権限',
+    perm_mic_desc:'Switchのゲーム音声を取得するために必要です。HDMIまたはUSBキャプチャーカードを音声入力として選択してください。',
+    perm_note:'⚠️ デバイスリストが空の場合はキャプチャーカードを接続してページを再読み込みしてください。すべてのメディアはローカルで処理されます。',
+    label_video:'映像ソース', label_audio:'音声ソース',
+    btn_start:'権限を許可して開始',
+    status_ready:'初期化準備完了',
+    status_authorizing:'権限をリクエスト中...',
+    status_success:'許可されました。起動中...',
+    status_fail:'❌ 権限が拒否されました。カメラとマイクのアクセスを許可してください。',
+    nav_shot:'スクショ', nav_rec:'録画', nav_audio:'音声', nav_settings:'設定',
+    adv_title:'詳細設定',
+    sec_format:'録画フォーマット', fmt_mp4_sub:'H.264 互換',
+    sec_bitrate:'映像ビットレート',
+    sec_shortcuts:'キーボードショートカット',
+    shortcut_rec:'録画', shortcut_shot:'スクショ', shortcut_mute:'ミュート', shortcut_fs:'全画面',
+    shortcut_rec_label:'録画 開始 / 停止', shortcut_shot_label:'スクリーンショット PNG',
+    shortcut_mute_label:'ミュート / ミュート解除', shortcut_fs_label:'全画面切替',
+    sec_audio_mode:'モニタリングモード', audio_hifi_sub:'高品質・無損失', audio_low_sub:'最低遅延優先',
+    overlay_title:'オーバーレイ表示', overlay_sub:'解像度・FPSをオーバーレイで表示',
+    sec_zoom:'ズームコントロール', zoom_wheel:'スクロールでズーム（最大8x）', zoom_drag:'ドラッグでパン', zoom_dbl:'ダブルクリックでリセット',
+    btn_apply:'保存して適用',
+  }
+};
+
+let currentLang = 'zh';
+
+function setLang(lang) {
+  currentLang = lang;
+  const dict = LANGS[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key] !== undefined) el.textContent = dict[key];
+  });
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active',
+      (lang==='zh' && btn.textContent==='中文') ||
+      (lang==='en' && btn.textContent==='EN') ||
+      (lang==='ja' && btn.textContent==='日本語')
+    );
+  });
+  document.documentElement.lang = lang==='zh'?'zh-TW': lang==='ja'?'ja':'en';
+}
+
+// ════════════════════════════════
+// App state
+// ════════════════════════════════
 var vidStream, audStream, mediaRec, recChunks=[], isRec=false;
 var audOn=false, audEl=null, bitrate=16000000, idleTimer, gl, glTex, rafId;
 var zoomScale=1, panX=0, panY=0, isPanning=false, panStartX, panStartY, panOriginX, panOriginY;
+var recFormat='webm', audioMode='hifi';
 
 const $ = id => document.getElementById(id);
 
-// ── 1. 初始化與設備偵測 ──
+// ── Devices ──
 async function refreshDevices() {
   const devs = await navigator.mediaDevices.enumerateDevices();
-  const vD = devs.filter(d => d.kind === 'videoinput');
-  const aD = devs.filter(d => d.kind === 'audioinput');
-
-  // 渲染清單 (但不重設選擇)
-  $('vid-sel').innerHTML = vD.map(d => `<option value="${d.deviceId}">${d.label || 'Video Device'}</option>`).join('');
-  let audOptions = aD.map(d => `<option value="${d.deviceId}">${d.label || 'Audio Device'}</option>`).join('');
-  $('aud-sel').innerHTML = audOptions + `<option value="">-- 不使用音訊 --</option>`;
-
-  // 只有在還沒選過的情況下才自動預設擷取卡
+  const vD = devs.filter(d => d.kind==='videoinput');
+  const aD = devs.filter(d => d.kind==='audioinput');
+  $('vid-sel').innerHTML = vD.map(d=>`<option value="${d.deviceId}">${d.label||'Video Device'}</option>`).join('');
+  $('aud-sel').innerHTML = aD.map(d=>`<option value="${d.deviceId}">${d.label||'Audio Device'}</option>`).join('')
+    + `<option value="">-- No Audio --</option>`;
   if (!$('aud-sel').dataset.selected) {
     for (let d of aD) {
-      const l = d.label.toLowerCase();
-      if (l.includes('capture') || l.includes('hdmi') || l.includes('usb')) {
+      if (/capture|hdmi|usb/i.test(d.label)) {
         $('aud-sel').value = d.deviceId;
-        $('aud-sel').dataset.selected = "true";
+        $('aud-sel').dataset.selected = '1';
         break;
       }
     }
   }
 }
 
-// ── 2. 啟動流程 (修復音訊跳掉的關鍵) ──
+// ── Start ──
 async function handleStart() {
-  // 先把當前的選擇鎖定下來，防止後續刷新干擾
+  const dict = LANGS[currentLang];
   const chosenVid = $('vid-sel').value;
   const chosenAud = $('aud-sel').value;
-
+  $('ph-log').textContent = dict.status_authorizing;
+  $('ph-log').style.color = '';
+  $('ph-log').style.opacity = '0.7';
   try {
-    // 確保點擊時獲取權限並播放音訊物件
     audEl = new Audio();
-    const stream = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
-    stream.getTracks().forEach(t => t.stop());
-    
-    // 開始擷取時使用剛剛「鎖定」的值
-    startCapture(chosenVid, chosenAud);
-  } catch(e) { alert("請授權相機與麥克風權限以利擷取。"); }
+    const s = await navigator.mediaDevices.getUserMedia({video:true, audio:true});
+    s.getTracks().forEach(t=>t.stop());
+    await refreshDevices();
+    if (chosenVid) $('vid-sel').value = chosenVid;
+    if (chosenAud) $('aud-sel').value = chosenAud;
+    $('ph-log').textContent = dict.status_success;
+    startCapture($('vid-sel').value, $('aud-sel').value);
+  } catch(e) {
+    $('ph-log').textContent = dict.status_fail;
+    $('ph-log').style.color = '#ff716c';
+    $('ph-log').style.opacity = '0.9';
+  }
 }
 
 async function startCapture(vidId, audId) {
   try {
-    if(vidStream) vidStream.getTracks().forEach(t => t.stop());
-
+    if(vidStream) vidStream.getTracks().forEach(t=>t.stop());
     vidStream = await navigator.mediaDevices.getUserMedia({
-      video: { deviceId: vidId ? {exact: vidId} : undefined, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 60} }
+      video: {deviceId:vidId?{exact:vidId}:undefined, width:{ideal:1920}, height:{ideal:1080}, frameRate:{ideal:60}}
     });
-
     if(audId) {
-      audStream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { deviceId: {exact: audId}, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      audStream = await navigator.mediaDevices.getUserMedia({
+        audio: {deviceId:{exact:audId}, echoCancellation:false, noiseSuppression:false, autoGainControl:false,
+          latency: audioMode==='low' ? 0 : undefined}
       });
     }
-
     $('src').srcObject = vidStream;
     $('src').onloadedmetadata = () => {
       $('src').play();
-      $('setup-layer').classList.add('opacity-0', 'pointer-events-none');
+      $('setup-layer').classList.add('opacity-0','pointer-events-none');
       $('ui-bottom').classList.remove('hidden');
-      initGL();
-      renderLoop();
-      
-      if(audStream && audEl) {
-        audOn = true;
-        audEl.srcObject = audStream;
-        audEl.play().catch(e => console.error("音訊播放受阻", e));
-        updateAudUI();
-      }
+      initGL(); renderLoop();
+      if(audStream && audEl){ audOn=true; audEl.srcObject=audStream; audEl.play().catch(()=>{}); updateAudUI(); }
       initIdle();
     };
-  } catch (e) { alert("啟動失敗: " + e.message); }
+  } catch(e){ alert('Failed: '+e.message); }
 }
 
-// ── 3. WebGL 16:9 渲染 ──
+// ── WebGL (low-latency) ──
 function initGL() {
   const canvas = $('glCanvas');
-  gl = canvas.getContext('webgl', {preserveDrawingBuffer:true, alpha:false});
+  gl = canvas.getContext('webgl', {preserveDrawingBuffer:true, alpha:false, desynchronized:true, powerPreference:'high-performance'});
   const vs = 'attribute vec2 p;attribute vec2 u;varying vec2 v;void main(){gl_Position=vec4(p,0,1);v=u;}';
   const fs = 'precision mediump float;uniform sampler2D t;varying vec2 v;void main(){gl_FragColor=texture2D(t,v);}';
-  const mk = (t, s) => { const h = gl.createShader(t); gl.shaderSource(h, s); gl.compileShader(h); return h; };
+  const mk = (t,s) => { const h=gl.createShader(t); gl.shaderSource(h,s); gl.compileShader(h); return h; };
   const pr = gl.createProgram();
-  gl.attachShader(pr, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(pr, mk(gl.FRAGMENT_SHADER, fs));
+  gl.attachShader(pr,mk(gl.VERTEX_SHADER,vs)); gl.attachShader(pr,mk(gl.FRAGMENT_SHADER,fs));
   gl.linkProgram(pr); gl.useProgram(pr);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,0,1,1,-1,1,1,-1,1,0,0,1,1,1,0]), gl.STATIC_DRAW);
-  const aP = gl.getAttribLocation(pr, 'p'), aU = gl.getAttribLocation(pr, 'u');
-  gl.enableVertexAttribArray(aP); gl.vertexAttribPointer(aP, 2, gl.FLOAT, false, 16, 0);
-  gl.enableVertexAttribArray(aU); gl.vertexAttribPointer(aU, 2, gl.FLOAT, false, 16, 8);
-  glTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, glTex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  const aP=gl.getAttribLocation(pr,'p'), aU=gl.getAttribLocation(pr,'u');
+  gl.enableVertexAttribArray(aP); gl.vertexAttribPointer(aP,2,gl.FLOAT,false,16,0);
+  gl.enableVertexAttribArray(aU); gl.vertexAttribPointer(aU,2,gl.FLOAT,false,16,8);
+  glTex=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,glTex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
 }
 
 function renderLoop() {
   rafId = requestAnimationFrame(renderLoop);
-  if(!gl || $('src').readyState < 2) return;
-  const dpr = window.devicePixelRatio || 1;
-  const canvas = $('glCanvas');
-  if(canvas.width !== canvas.clientWidth * dpr) { canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr; }
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, $('src'));
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-  if(!window._f) { window._f=0; window._t=performance.now(); } window._f++;
-  if(performance.now()-window._t>=1000) { $('fps-badge').textContent = window._f + " FPS"; window._f=0; window._t=performance.now(); }
-  const s = vidStream.getVideoTracks()[0].getSettings(); $('res-badge').textContent = `${s.width}x${s.height}`;
+  if(!gl || $('src').readyState<2) return;
+  const dpr=window.devicePixelRatio||1, canvas=$('glCanvas');
+  if(canvas.width!==canvas.clientWidth*dpr){ canvas.width=canvas.clientWidth*dpr; canvas.height=canvas.clientHeight*dpr; }
+  gl.viewport(0,0,canvas.width,canvas.height);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,$('src'));
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  if(!window._f){window._f=0;window._t=performance.now();}
+  window._f++;
+  if(performance.now()-window._t>=1000){$('fps-badge').textContent=window._f+' FPS';window._f=0;window._t=performance.now();}
+  const s=vidStream.getVideoTracks()[0].getSettings();
+  $('res-badge').textContent=`${s.width}x${s.height}`;
 }
 
-// ── 4. 功能與控制 ──
-function toggleAudioMonitor() {
-  if(!audEl) return;
-  audOn = !audOn;
-  if(audOn) audEl.play(); else audEl.pause();
-  updateAudUI();
-}
-function updateAudUI() {
-  $('vol-icon').textContent = audOn ? 'volume_up' : 'volume_off';
-  $('aud-btn').classList.toggle('text-primary', audOn);
-}
+// ── Audio ──
+function toggleAudioMonitor(){ if(!audEl)return; audOn=!audOn; audOn?audEl.play():audEl.pause(); updateAudUI(); }
+function updateAudUI(){ $('vol-icon').textContent=audOn?'volume_up':'volume_off'; $('aud-btn').classList.toggle('text-primary',audOn); }
+function setAudioMode(m){ audioMode=m; $('mode-hifi').classList.toggle('active',m==='hifi'); $('mode-low').classList.toggle('active',m==='low'); }
 
-function takePhoto() {
+// ── Screenshot ──
+function takePhoto(){
   const cvs=$('snap'); cvs.width=$('src').videoWidth; cvs.height=$('src').videoHeight;
   cvs.getContext('2d').drawImage($('src'),0,0);
   $('flash').style.opacity='1'; setTimeout(()=>$('flash').style.opacity='0',150);
-  cvs.toBlob(b => { const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`Shot_${Date.now()}.png`; a.click(); });
+  cvs.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`Shot_${Date.now()}.png`;a.click();});
 }
 
-function toggleRec() {
-  if(!isRec) {
-    recChunks = [];
-    const tracks = [...vidStream.getTracks(), ...(audStream ? audStream.getTracks() : [])];
-    mediaRec = new MediaRecorder(new MediaStream(tracks), { videoBitsPerSecond: bitrate });
-    mediaRec.ondataavailable = e => recChunks.push(e.data);
-    mediaRec.onstop = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(recChunks)); a.download=`Rec_${Date.now()}.webm`; a.click(); };
-    mediaRec.start(); isRec=true; $('rec-icon').textContent='stop';
+// ── Recording ──
+function setFormat(fmt){
+  recFormat=fmt;
+  $('fmt-webm').classList.toggle('card-active',fmt==='webm'); $('fmt-webm').classList.toggle('opacity-50',fmt!=='webm');
+  $('fmt-mp4').classList.toggle('card-active',fmt==='mp4');   $('fmt-mp4').classList.toggle('opacity-50',fmt!=='mp4');
+}
+function getBestMimeType(){
+  const c = recFormat==='mp4'
+    ? ['video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp9,opus','video/webm']
+    : ['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
+  return c.find(m=>MediaRecorder.isTypeSupported(m))||'';
+}
+function toggleRec(){
+  if(!isRec){
+    recChunks=[];
+    const tracks=[...vidStream.getTracks(),...(audStream?audStream.getTracks():[])];
+    const mimeType=getBestMimeType(), opts={videoBitsPerSecond:bitrate};
+    if(mimeType) opts.mimeType=mimeType;
+    mediaRec=new MediaRecorder(new MediaStream(tracks),opts);
+    mediaRec.ondataavailable=e=>recChunks.push(e.data);
+    mediaRec.onstop=()=>{
+      const ext=recFormat==='mp4'?'mp4':'webm';
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(new Blob(recChunks,{type:mimeType||'video/webm'}));
+      a.download=`Rec_${Date.now()}.${ext}`; a.click();
+    };
+    mediaRec.start(100); isRec=true; $('rec-icon').textContent='stop';
     $('rec-status').classList.remove('hidden');
-    let s=0; window._ti = setInterval(()=>{ s++; const m=Math.floor(s/60), ss=s%60; $('timer-text').textContent=`REC 00:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`; },1000);
+    let s=0; window._ti=setInterval(()=>{
+      s++; const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+      $('timer-text').textContent=`REC ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    },1000);
   } else {
     mediaRec.stop(); isRec=false; $('rec-icon').textContent='fiber_manual_record';
     $('rec-status').classList.add('hidden'); clearInterval(window._ti);
   }
 }
 
-function initIdle() {
-  const show = () => { 
-    document.body.style.cursor='default'; 
+// ── Idle UI ──
+function initIdle(){
+  const show=()=>{
+    document.body.style.cursor='default';
     $('ui-header').classList.remove('ui-hidden-top'); $('ui-bottom').classList.remove('ui-hidden');
-    $('rec-status').classList.remove('ui-hidden-top');
     if($('info-toggle').checked) $('telemetry').classList.remove('hidden');
-    clearTimeout(idleTimer); idleTimer = setTimeout(hide, 3000); 
+    clearTimeout(idleTimer); idleTimer=setTimeout(hide,3000);
   };
-  const hide = () => { if(isRec) return; document.body.style.cursor='none'; $('ui-header').classList.add('ui-hidden-top'); $('ui-bottom').classList.add('ui-hidden'); $('telemetry').classList.add('hidden'); };
-  ['mousemove','mousedown','keydown','click'].forEach(v => window.addEventListener(v, show));
+  const hide=()=>{
+    if(isRec) return;
+    document.body.style.cursor='none';
+    $('ui-header').classList.add('ui-hidden-top'); $('ui-bottom').classList.add('ui-hidden');
+    $('telemetry').classList.add('hidden');
+  };
+  ['mousemove','mousedown','keydown','click'].forEach(v=>window.addEventListener(v,show));
 }
 
-function openAdvanced() { $('adv-modal').classList.remove('hidden'); }
-function closeAdvanced() { $('adv-modal').classList.add('hidden'); }
-function syncOverlay(el) { $('telemetry').classList.toggle('hidden', !el.checked); }
-function toggleFS() { if(!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
-$('br-slider').oninput = function() { bitrate = this.value; $('br-display').innerHTML = (this.value/1000000).toFixed(1) + ' Mbps'; };
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e=>{
+  if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
+  switch(e.code){
+    case 'Space': e.preventDefault(); if(vidStream) toggleRec(); break;
+    case 'KeyS':  if(vidStream) takePhoto(); break;
+    case 'KeyM':  toggleAudioMonitor(); break;
+    case 'KeyF':  toggleFS(); break;
+  }
+});
 
-// ── 5. 縮放平移 ──
-function applyTrans() { $('glCanvas').style.transform = `scale(${zoomScale}) translate(${panX/zoomScale}px, ${panY/zoomScale}px)`; }
-$('vw').addEventListener('wheel', e => { e.preventDefault(); zoomScale=Math.max(1,Math.min(8,zoomScale*(e.deltaY<0?1.1:0.9))); if(zoomScale<1.01){zoomScale=1;panX=0;panY=0;} applyTrans(); }, {passive:false});
-$('vw').addEventListener('mousedown', e => { if(zoomScale<=1) return; isPanning=true; panStartX=e.clientX; panStartY=e.clientY; panOriginX=panX; panOriginY=panY; });
-window.addEventListener('mousemove', e => { if(!isPanning) return; panX=panOriginX+e.clientX-panStartX; panY=panOriginY+e.clientY-panStartY; applyTrans(); });
-window.addEventListener('mouseup', () => isPanning = false);
-$('vw').addEventListener('dblclick', () => { zoomScale=1; panX=0; panY=0; applyTrans(); });
+// ── Misc ──
+function openAdvanced(){ $('adv-modal').classList.remove('hidden'); }
+function closeAdvanced(){ $('adv-modal').classList.add('hidden'); }
+function syncOverlay(el){ $('telemetry').classList.toggle('hidden',!el.checked); }
+function toggleFS(){ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+
+$('br-slider').oninput = function(){
+  bitrate=+this.value;
+  $('br-display').innerHTML=(+this.value/1e6).toFixed(1)+' <span class="text-xs font-normal uppercase">Mbps</span>';
+};
+
+// ── Zoom & Pan ──
+function applyTrans(){ $('glCanvas').style.transform=`scale(${zoomScale}) translate(${panX/zoomScale}px,${panY/zoomScale}px)`; }
+$('vw').addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoomScale=Math.max(1,Math.min(8,zoomScale*(e.deltaY<0?1.1:0.9)));
+  if(zoomScale<1.01){zoomScale=1;panX=0;panY=0;} applyTrans();
+},{passive:false});
+$('vw').addEventListener('mousedown',e=>{ if(zoomScale<=1)return; isPanning=true;panStartX=e.clientX;panStartY=e.clientY;panOriginX=panX;panOriginY=panY; });
+window.addEventListener('mousemove',e=>{ if(!isPanning)return; panX=panOriginX+e.clientX-panStartX;panY=panOriginY+e.clientY-panStartY;applyTrans(); });
+window.addEventListener('mouseup',()=>isPanning=false);
+$('vw').addEventListener('dblclick',()=>{ zoomScale=1;panX=0;panY=0;applyTrans(); });
 
 refreshDevices();
 </script>
